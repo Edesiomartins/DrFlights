@@ -6,8 +6,7 @@ export function SignOutButton() {
   return (
     <button
       type="button"
-      className="btn btn-secondary"
-      style={{ padding: "0.4rem 0.9rem" }}
+      className="btn btn-secondary site-nav-cta"
       onClick={() => void signOut({ callbackUrl: "/" })}
     >
       Sair

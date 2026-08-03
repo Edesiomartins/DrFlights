@@ -83,13 +83,13 @@ export function SearchForm() {
           [
             ["round_trip", "Ida e volta"],
             ["one_way", "Somente ida"],
-            ["multi_city", "Múltiplos trechos"],
+            ["multi_city", "Trechos"],
           ] as const
         ).map(([value, label]) => (
           <button
             key={value}
             type="button"
-            className={`btn ${tripType === value ? "btn-primary" : "btn-secondary"}`}
+            className={`trip-type-btn ${tripType === value ? "is-active" : ""}`}
             onClick={() => setTripType(value)}
           >
             {label}
@@ -97,93 +97,103 @@ export function SearchForm() {
         ))}
       </div>
 
-      <div className="search-grid">
-        <AirportInput id="origin" label="Origem" value={origin} onChange={setOrigin} />
-        <AirportInput
-          id="destination"
-          label="Destino"
-          value={destination}
-          onChange={setDestination}
-        />
-        <div className="field">
-          <label htmlFor="depart">Data de ida</label>
-          <input
-            id="depart"
-            type="date"
-            required
-            value={depart}
-            onChange={(e) => setDepart(e.target.value)}
+      <div className="search-rows">
+        <div className="search-row search-row--route">
+          <AirportInput id="origin" label="Origem" value={origin} onChange={setOrigin} />
+          <AirportInput
+            id="destination"
+            label="Destino"
+            value={destination}
+            onChange={setDestination}
           />
         </div>
-        {tripType === "round_trip" ? (
+
+        <div
+          className={`search-row search-row--dates ${tripType === "round_trip" ? "has-return" : ""}`}
+        >
           <div className="field">
-            <label htmlFor="return">Data de volta</label>
+            <label htmlFor="depart">Data de ida</label>
             <input
-              id="return"
+              id="depart"
               type="date"
               required
-              value={ret}
-              onChange={(e) => setRet(e.target.value)}
+              value={depart}
+              onChange={(e) => setDepart(e.target.value)}
             />
           </div>
-        ) : null}
-        <div className="field">
-          <label htmlFor="adults">Adultos</label>
-          <input
-            id="adults"
-            type="number"
-            min={1}
-            max={9}
-            value={adults}
-            onChange={(e) => setAdults(Number(e.target.value))}
-          />
+          {tripType === "round_trip" ? (
+            <div className="field">
+              <label htmlFor="return">Data de volta</label>
+              <input
+                id="return"
+                type="date"
+                required
+                value={ret}
+                onChange={(e) => setRet(e.target.value)}
+              />
+            </div>
+          ) : null}
         </div>
-        <div className="field">
-          <label htmlFor="children">Crianças</label>
-          <input
-            id="children"
-            type="number"
-            min={0}
-            max={8}
-            value={children}
-            onChange={(e) => setChildren(Number(e.target.value))}
-          />
-        </div>
-        <div className="field search-field-secondary">
-          <label htmlFor="infants">Bebês</label>
-          <input
-            id="infants"
-            type="number"
-            min={0}
-            max={4}
-            value={infants}
-            onChange={(e) => setInfants(Number(e.target.value))}
-          />
-        </div>
-        <div className="field search-field-secondary">
-          <label htmlFor="cabin">Cabine</label>
-          <select id="cabin" value={cabin} onChange={(e) => setCabin(e.target.value)}>
-            <option value="economy">Econômica</option>
-            <option value="premium_economy">Econômica premium</option>
-            <option value="business">Executiva</option>
-            <option value="first">Primeira</option>
-          </select>
-        </div>
-        <div className="field search-field-secondary">
-          <label htmlFor="stops">Máx. escalas</label>
-          <select id="stops" value={maxStops} onChange={(e) => setMaxStops(e.target.value)}>
-            <option value="">Qualquer</option>
-            <option value="0">Direto</option>
-            <option value="1">Até 1</option>
-            <option value="2">Até 2</option>
-          </select>
+
+        <div className="search-row search-row--pax">
+          <div className="field">
+            <label htmlFor="adults">Adultos</label>
+            <input
+              id="adults"
+              type="number"
+              min={1}
+              max={9}
+              value={adults}
+              onChange={(e) => setAdults(Number(e.target.value))}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="children">Crianças</label>
+            <input
+              id="children"
+              type="number"
+              min={0}
+              max={8}
+              value={children}
+              onChange={(e) => setChildren(Number(e.target.value))}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="infants">Bebês</label>
+            <input
+              id="infants"
+              type="number"
+              min={0}
+              max={4}
+              value={infants}
+              onChange={(e) => setInfants(Number(e.target.value))}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="cabin">Cabine</label>
+            <select id="cabin" value={cabin} onChange={(e) => setCabin(e.target.value)}>
+              <option value="economy">Econômica</option>
+              <option value="premium_economy">Econômica premium</option>
+              <option value="business">Executiva</option>
+              <option value="first">Primeira</option>
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="stops">Máx. escalas</label>
+            <select id="stops" value={maxStops} onChange={(e) => setMaxStops(e.target.value)}>
+              <option value="">Qualquer</option>
+              <option value="0">Direto</option>
+              <option value="1">Até 1</option>
+              <option value="2">Até 2</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {tripType === "multi_city" ? (
         <div className="multi-city-block">
           {extraSlices.map((slice, index) => (
-            <div key={index} className="search-grid">
+            <div key={index} className="search-row search-row--route">
               <div className="field">
                 <label>Origem {index + 2}</label>
                 <input
@@ -242,7 +252,7 @@ export function SearchForm() {
             checked={compareSeparate}
             onChange={(e) => setCompareSeparate(e.target.checked)}
           />
-          Comparar ida e volta com dois trechos separados
+          Comparar com trechos separados
         </label>
       ) : null}
 

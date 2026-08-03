@@ -8,21 +8,11 @@ export async function SiteHeader() {
   const appName = getAppName();
 
   return (
-    <header
-      className="shell"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: "1rem",
-        padding: "1.25rem 0",
-        color: "var(--sand)",
-      }}
-    >
-      <Link href="/" style={{ fontFamily: "var(--font-display)", fontSize: "1.45rem", fontWeight: 700 }}>
+    <header className="site-header shell">
+      <Link href="/" className="site-logo">
         {appName}
       </Link>
-      <nav style={{ display: "flex", gap: "1rem", flexWrap: "wrap", fontWeight: 600, fontSize: "0.95rem" }}>
+      <nav className="site-nav" aria-label="Principal">
         <Link href="/">Buscar</Link>
         {session ? (
           <>
@@ -34,7 +24,7 @@ export async function SiteHeader() {
         ) : (
           <>
             <Link href="/entrar">Entrar</Link>
-            <Link href="/cadastro" className="btn btn-primary" style={{ padding: "0.45rem 0.95rem" }}>
+            <Link href="/cadastro" className="btn btn-primary site-nav-cta">
               Criar conta
             </Link>
           </>
