@@ -60,11 +60,13 @@ ADMIN_EMAILS=seuemail@dominio.com
 
 ## 5. Variáveis opcionais (busca real)
 
-Sem estas, a página sobe e os providers aparecem como **desativados**:
+**Já ativos sem chave:** Kiwi.com e Skiplagged (fontes gratuitas).
+
+Para mais cobertura / milhas, configure:
 
 ```env
 DUFFEL_API_KEY=
-# ou compatibilidade com o toolkit:
+# ou:
 DUFFEL_API_KEY_LIVE=
 IGNAV_API_KEY=
 SEATS_AERO_API_KEY=

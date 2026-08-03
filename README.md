@@ -9,8 +9,10 @@ Não emite bilhete e não processa pagamento.
 - Next.js (App Router) + TypeScript
 - PostgreSQL + Prisma
 - Auth.js (e-mail/senha, JWT)
-- Providers: Duffel, Ignav, Seats.aero (opcional)
+- Providers: Duffel, Ignav, Kiwi.com, Seats.aero (opcional), Skiplagged
 - Docker / Coolify
+
+Fontes gratuitas (sempre ativas, sem chave): **Kiwi.com** e **Skiplagged**.
 
 ## Desenvolvimento local
 

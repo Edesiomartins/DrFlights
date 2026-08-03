@@ -13,14 +13,16 @@ Aplicação monolítica modular para metabusca de passagens, preparada para uma 
 ## Decisões
 
 1. App em `src/` na raiz do repositório.
-2. Providers: Duffel (principal), Ignav (secundário), Seats.aero (opcional). Orquestração com `Promise.allSettled`.
+2. Providers: Duffel, Ignav, **Kiwi.com** (gratuito), **Skiplagged** (gratuito), Seats.aero (opcional). Orquestração com `Promise.allSettled`.
 3. Cache na tabela `Search` (TTL padrão 600s). Sem Redis.
 4. Chaves Duffel: `DUFFEL_API_KEY` ou `DUFFEL_API_KEY_LIVE`.
-5. Admin via `ADMIN_EMAILS` (CSV) no cadastro/login.
-6. Aeroportos indexados em memória a partir de `data/airport-coordinates.json` (OpenFlights / ODbL).
-7. Promoções por mediana histórica da rota (90 dias, ≥5 amostras).
-8. Rate limit em memória (instância única).
-9. Middleware Edge usa `auth.config.ts` (sem Prisma/bcrypt no bundle Edge).
+5. Kiwi e Skiplagged usam endpoints HTTP públicos (`mcp.kiwi.com`, `mcp.skiplagged.com`) **sem API key** — são fontes de dados no backend, não dependência de Claude/MCP tooling.
+6. Admin via `ADMIN_EMAILS` (CSV) no cadastro/login.
+7. Aeroportos indexados em memória a partir de `data/airport-coordinates.json` (OpenFlights / ODbL).
+8. Promoções por mediana histórica da rota (90 dias, ≥5 amostras).
+9. Rate limit em memória (instância única).
+10. Middleware Edge usa `auth.config.ts` (sem Prisma/bcrypt no bundle Edge).
+11. Ofertas Kiwi/Skiplagged com self-transfer ou hidden-city são marcadas e exibem aviso na UI.
 
 ## Dados mantidos em `data/`
 

@@ -44,7 +44,7 @@ export function OfferCard({ offer, badge }: Props) {
           </div>
           <div style={{ fontSize: "0.9rem", opacity: 0.75 }}>
             Fonte: {offer.provider}
-            {offer.separateTickets ? " · bilhetes separados" : ""}
+            {offer.separateTickets ? " · bilhetes separados / self-transfer" : ""}
             {badge ? ` · ${badge}` : ""}
           </div>
         </div>
@@ -132,6 +132,13 @@ export function OfferCard({ offer, badge }: Props) {
           <span>~{offer.estimatedCpp.toFixed(1)} cpp (piso de avaliação)</span>
         ) : null}
       </div>
+
+      {offer.separateTickets ? (
+          <div style={{ fontSize: "0.85rem", color: "var(--warn)", fontWeight: 700 }}>
+            Atenção: pode envolver bilhetes separados ou hidden-city. Confirme bagagem,
+            conexão e regras no site do fornecedor antes de comprar.
+          </div>
+        ) : null}
 
       {offer.promotionMeta && offer.promotionMeta.sampleCount >= 5 ? (
         <div style={{ fontSize: "0.85rem", opacity: 0.8 }}>

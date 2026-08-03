@@ -185,6 +185,8 @@ export function ResultsClient({ queryPayload }: Props) {
               <option value="">Todos</option>
               <option value="duffel">Duffel</option>
               <option value="ignav">Ignav</option>
+              <option value="kiwi">Kiwi.com</option>
+              <option value="skiplagged">Skiplagged</option>
               <option value="seats-aero">Seats.aero</option>
             </select>
           </div>
