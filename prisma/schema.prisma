@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum TripType {
+  ONE_WAY
+  ROUND_TRIP
+  MULTI_CITY
+}
+
+model User {
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  role         Role         @default(USER)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  searches     Search[]
+  alerts       PriceAlert[]
+
+  @@index([email])
+}
+
+model Search {
+  id                 String    @id @default(cuid())
+  userId             String?
+  user               User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  requestHash        String
+  requestData        Json
+  normalizedResults  Json
+  providerStatuses    Json
+  createdAt          DateTime  @default(now())
+  expiresAt          DateTime
+
+  @@index([requestHash])
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+model PriceSnapshot {
+  id              String    @id @default(cuid())
+  provider        String
+  itineraryHash   String
+  origin          String
+  destination     String
+  departureDate   String
+  returnDate      String?
+  tripType        TripType
+  cabin           String
+  amount          Float?
+  currency        String?
+  pointsAmount    Int?
+  pointsProgram   String?
+  stops           Int
+  durationMinutes Int
+  observedAt      DateTime  @default(now())
+
+  @@index([origin, destination, tripType, cabin, observedAt])
+  @@index([itineraryHash, observedAt])
+  @@index([departureDate])
+}
+
+model PriceAlert {
+  id                 String            @id @default(cuid())
+  userId             String
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  origin             String
+  destination        String
+  departureDateFrom  String
+  departureDateTo    String
+  returnDateFrom     String?
+  returnDateTo       String?
+  cabin              String            @default("economy")
+  adults             Int               @default(1)
+  children           Int               @default(0)
+  maxStops           Int?
+  maxPrice           Float?
+  currency           String            @default("BRL")
+  active             Boolean           @default(true)
+  lastCheckedAt      DateTime?
+  lastMatchedPrice   Float?
+  lastNotifiedAt     DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  notifications      NotificationLog[]
+
+  @@index([userId, active])
+  @@index([active, lastCheckedAt])
+  @@index([origin, destination])
+}
+
+model NotificationLog {
+  id        String     @id @default(cuid())
+  alertId   String
+  alert     PriceAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  channel   String
+  recipient String
+  status    String
+  price     Float?
+  provider  String?
+  messageId String?
+  error     String?
+  createdAt DateTime   @default(now())
+
+  @@index([alertId, createdAt])
+}
+
+model ProviderStatus {
+  id            String    @id @default(cuid())
+  provider      String    @unique
+  enabled       Boolean   @default(true)
+  lastStatus    String?
+  lastLatencyMs Int?
+  lastSuccessAt DateTime?
+  lastFailureAt DateTime?
+  lastError     String?
+  updatedAt     DateTime  @updatedAt
+}

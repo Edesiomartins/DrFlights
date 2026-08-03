@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+:root {
+  --bg-deep: #0b1f2a;
+  --bg-mid: #123246;
+  --bg-soft: #1a445c;
+  --sand: #f3ebe0;
+  --sand-muted: #d9cfc0;
+  --accent: #e07a3d;
+  --accent-dark: #c45f24;
+  --sea: #3db8a8;
+  --ink: #102033;
+  --ok: #1f8a5b;
+  --warn: #c9851a;
+  --danger: #b33a3a;
+  --card: rgba(255, 255, 255, 0.92);
+  --line: rgba(16, 32, 51, 0.12);
+  --shadow: 0 18px 50px rgba(8, 24, 36, 0.22);
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Manrope", "Segoe UI", sans-serif;
+}
+
+@theme inline {
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-display);
+  --color-sand: var(--sand);
+  --color-accent: var(--accent);
+  --color-sea: var(--sea);
+  --color-ink: var(--ink);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  color: var(--ink);
+  font-family: var(--font-body);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(61, 184, 168, 0.28), transparent 55%),
+    radial-gradient(900px 500px at 90% 0%, rgba(224, 122, 61, 0.22), transparent 50%),
+    linear-gradient(160deg, var(--bg-deep), var(--bg-mid) 45%, #214a63 100%);
+  background-attachment: fixed;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.shell {
+  width: min(1120px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.glass {
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease, opacity 160ms ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+}
+
+.btn-secondary {
+  background: rgba(16, 32, 51, 0.06);
+  color: var(--ink);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(16, 32, 51, 0.7);
+}
+
+.field input,
+.field select,
+.field textarea {
+  border: 1px solid rgba(16, 32, 51, 0.14);
+  border-radius: 0.85rem;
+  padding: 0.75rem 0.9rem;
+  font: inherit;
+  background: #fff;
+  color: var(--ink);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid rgba(61, 184, 168, 0.45);
+  border-color: transparent;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-rise {
+  animation: rise 500ms ease both;
+}
+
+.animate-drift {
+  animation: drift 4s ease-in-out infinite alternate;
+}

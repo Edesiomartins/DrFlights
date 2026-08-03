@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: busca_aerea
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d busca_aerea"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/busca_aerea?schema=public
+      AUTH_SECRET: local-dev-change-me-please-use-long-secret
+      APP_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_NAME: Busca Aérea
+      DEFAULT_CURRENCY: BRL
+      PROVIDER_TIMEOUT_MS: "20000"
+      SEARCH_CACHE_TTL_SECONDS: "600"
+      CRON_SECRET: local-cron-secret
+      ADMIN_EMAILS: admin@example.com
+      DUFFEL_API_KEY: ${DUFFEL_API_KEY:-}
+      DUFFEL_API_KEY_LIVE: ${DUFFEL_API_KEY_LIVE:-}
+      IGNAV_API_KEY: ${IGNAV_API_KEY:-}
+      SEATS_AERO_API_KEY: ${SEATS_AERO_API_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
