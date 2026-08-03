@@ -1,5 +1,5 @@
+import { createHash } from "crypto";
 import { prisma } from "@/lib/db/prisma";
-import { hashIp } from "@/lib/ads/config";
 import { logger } from "@/lib/utils/logger";
 
 export type LogAffiliateClickInput = {
@@ -11,6 +11,10 @@ export type LogAffiliateClickInput = {
   referer?: string | null;
   ip?: string | null;
 };
+
+function hashIp(ip: string): string {
+  return createHash("sha256").update(ip).digest("hex").slice(0, 32);
+}
 
 export async function logAffiliateClick(
   input: LogAffiliateClickInput,

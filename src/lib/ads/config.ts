@@ -1,4 +1,3 @@
-import { createHash } from "crypto";
 import { getEnv } from "@/lib/utils/env";
 
 export type AdPlacement =
@@ -111,10 +110,6 @@ export function buildGoUrl(input: {
   if (input.partner) params.set("partner", input.partner);
   if (input.slotId) params.set("slot", input.slotId);
   return `/api/go?${params.toString()}`;
-}
-
-export function hashIp(ip: string): string {
-  return createHash("sha256").update(ip).digest("hex").slice(0, 32);
 }
 
 /**
