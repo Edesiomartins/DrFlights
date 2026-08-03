@@ -18,15 +18,47 @@ export async function POST() {
   const results = await Promise.all(providers.map((p) => p.healthCheck()));
 
   for (const result of results) {
-    if (result.ok) recordProviderSuccess(result.provider);
-    else if (result.configured) recordProviderFailure(result.provider);
-    const circuit = circuitFieldsForPersist(result.provider);
+    if (!result.configured) {
+      // Unconfigured: not a failure — keep circuit closed and disable the source.
+      recordProviderSuccess(result.provider);
+      await prisma.providerStatus.upsert({
+        where: { provider: result.provider },
+        create: {
+          provider: result.provider,
+          enabled: false,
+          lastStatus: "disabled",
+          lastLatencyMs: null,
+          lastError: result.message,
+          consecutiveFailures: 0,
+          circuitState: "closed",
+          circuitOpenedAt: null,
+        },
+        update: {
+          enabled: false,
+          lastStatus: "disabled",
+          lastLatencyMs: null,
+          lastError: result.message,
+          consecutiveFailures: 0,
+          circuitState: "closed",
+          circuitOpenedAt: null,
+          lastFailureAt: null,
+        },
+      });
+      continue;
+    }
 
+    if (result.ok) {
+      recordProviderSuccess(result.provider);
+    } else {
+      recordProviderFailure(result.provider);
+    }
+
+    const circuit = circuitFieldsForPersist(result.provider);
     await prisma.providerStatus.upsert({
       where: { provider: result.provider },
       create: {
         provider: result.provider,
-        enabled: result.enabled,
+        enabled: true,
         lastStatus: result.ok ? "success" : "error",
         lastLatencyMs: result.latencyMs,
         lastSuccessAt: result.ok ? new Date() : undefined,
@@ -37,9 +69,9 @@ export async function POST() {
         circuitOpenedAt: circuit.circuitOpenedAt,
       },
       update: {
-        enabled: result.enabled,
+        enabled: true,
         lastStatus: result.ok ? "success" : "error",
-        lastLatencyMs: result.latencyMs,
+        lastLatencyMs: result.latencyMs ?? null,
         lastSuccessAt: result.ok ? new Date() : undefined,
         lastFailureAt: result.ok ? undefined : new Date(),
         lastError: result.ok ? null : result.message,
