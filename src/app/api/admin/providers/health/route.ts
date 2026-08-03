@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
+import { isMissingKeyMessage } from "@/lib/admin/provider-status-display";
 import { prisma } from "@/lib/db/prisma";
 import {
   circuitFieldsForPersist,
@@ -82,5 +83,15 @@ export async function POST() {
     });
   }
 
-  return NextResponse.json({ results });
+  return NextResponse.json({
+    results: results.map((result) => ({
+      ...result,
+      statusLabel:
+        !result.configured || isMissingKeyMessage(result.message)
+          ? "não configurado"
+          : result.ok
+            ? "operacional"
+            : "com falha",
+    })),
+  });
 }

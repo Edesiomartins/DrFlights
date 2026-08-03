@@ -103,6 +103,17 @@ describe("provider status display", () => {
     });
   });
 
+  it("treats missing-key error rows as unconfigured even with lastStatus=error", () => {
+    const view = classifyProviderStatus({
+      enabled: false,
+      lastStatus: "error",
+      circuitState: "closed",
+      lastError: "DUFFEL_API_KEY / DUFFEL_API_KEY_LIVE não configurada.",
+    });
+    expect(view.category).toBe("unconfigured");
+    expect(view.tone).toBe("neutral");
+  });
+
   it("formats health lines without calling unconfigured a failure", () => {
     expect(
       formatHealthResultLine({
@@ -117,7 +128,7 @@ describe("provider status display", () => {
         provider: "duffel",
         configured: false,
         ok: false,
-        message: "chave ausente",
+        message: "DUFFEL_API_KEY / DUFFEL_API_KEY_LIVE não configurada.",
       }),
     ).not.toContain("com falha");
   });

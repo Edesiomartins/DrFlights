@@ -6,6 +6,7 @@ import {
   formatHealthResultLine,
   nextCircuitRetryAt,
   summarizeProviderStatuses,
+  unconfiguredDetail,
   type ProviderStatusRow,
   type ProviderStatusTone,
 } from "@/lib/admin/provider-status-display";
@@ -286,7 +287,7 @@ export function AdminPanel() {
                           ) : null}
                         </>
                       ) : view.category === "unconfigured" ? (
-                        showError ?? "Chave ausente no servidor"
+                        unconfiguredDetail(p.provider, showError)
                       ) : p.lastSuccessAt ? (
                         `Último sucesso: ${new Date(p.lastSuccessAt).toLocaleString("pt-BR")}`
                       ) : (

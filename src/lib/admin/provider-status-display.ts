@@ -27,15 +27,22 @@ export type ProviderStatusRow = {
   circuitOpenedAt?: string | Date | null;
 };
 
+/** True when the stored error/message means missing API key, not a runtime failure. */
+export function isMissingKeyMessage(message: string | null | undefined): boolean {
+  if (!message) return false;
+  return /não configurad|nao configurad|api[_-]?key|chave ausente|sem chave|não configurada|nao configurada/i.test(
+    message,
+  );
+}
+
 /**
  * Maps persisted ProviderStatus (+ circuit) into admin display states.
  * Priority: open circuit → unconfigured → operational → failed.
  */
 export function classifyProviderStatus(
-  row: Pick<
-    ProviderStatusRow,
-    "enabled" | "lastStatus" | "circuitState"
-  >,
+  row: Pick<ProviderStatusRow, "enabled" | "lastStatus" | "circuitState"> & {
+    lastError?: string | null;
+  },
 ): ProviderStatusView {
   if (row.circuitState === "open" || row.circuitState === "half_open") {
     return {
@@ -45,7 +52,11 @@ export function classifyProviderStatus(
     };
   }
 
-  if (!row.enabled || row.lastStatus === "disabled") {
+  if (
+    !row.enabled ||
+    row.lastStatus === "disabled" ||
+    isMissingKeyMessage(row.lastError)
+  ) {
     return {
       label: "Não configurado",
       tone: "neutral",
@@ -66,6 +77,20 @@ export function classifyProviderStatus(
     tone: "danger",
     category: "failed",
   };
+}
+
+export function unconfiguredDetail(
+  provider: string,
+  lastError: string | null | undefined,
+): string {
+  const base = lastError?.trim() || "Chave de API ausente no servidor.";
+  if (provider === "duffel") {
+    return `${base} Opcional no Brasil — a busca continua com Kiwi/Skiplagged.`;
+  }
+  if (provider === "ignav" || provider === "seats-aero") {
+    return `${base} Fonte paga opcional.`;
+  }
+  return base;
 }
 
 export function summarizeProviderStatuses(rows: ProviderStatusRow[]): {
@@ -107,11 +132,14 @@ export function formatHealthResultLine(result: {
   latencyMs?: number;
 }): string {
   let status: string;
-  if (!result.configured) status = "não configurado";
-  else if (result.ok) status = "operacional";
-  else status = "com falha";
+  if (!result.configured || isMissingKeyMessage(result.message)) {
+    status = "não configurado";
+  } else if (result.ok) {
+    status = "operacional";
+  } else {
+    status = "com falha";
+  }
 
-  const latency =
-    result.latencyMs != null ? `${result.latencyMs}ms` : "—";
+  const latency = result.latencyMs != null ? `${result.latencyMs}ms` : "—";
   return `${result.provider}: ${status} (${latency}) — ${result.message}`;
 }
