@@ -32,7 +32,12 @@ function LoginForm() {
   }
 
   return (
-    <form className="glass" onSubmit={onSubmit} style={{ borderRadius: "1.25rem", padding: "1.5rem", display: "grid", gap: "1rem" }}>
+    <form
+      className="glass"
+      onSubmit={onSubmit}
+      data-testid="login-form"
+      style={{ borderRadius: "1.25rem", padding: "1.5rem", display: "grid", gap: "1rem" }}
+    >
       <div className="field">
         <label htmlFor="email">E-mail</label>
         <input id="email" name="email" type="email" required autoComplete="email" />
@@ -42,7 +47,7 @@ function LoginForm() {
         <input id="password" name="password" type="password" required autoComplete="current-password" />
       </div>
       {error ? <p style={{ color: "var(--danger)", margin: 0 }}>{error}</p> : null}
-      <button className="btn btn-primary" type="submit" disabled={loading}>
+      <button className="btn btn-primary" type="submit" disabled={loading} data-testid="login-submit">
         {loading ? "Entrando…" : "Entrar"}
       </button>
       <p style={{ margin: 0, fontSize: "0.9rem" }}>

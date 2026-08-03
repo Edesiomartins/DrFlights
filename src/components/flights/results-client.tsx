@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdSlotCard } from "@/components/ads/ad-slot-card";
 import { OfferCard } from "@/components/flights/offer-card";
+import { ResultsSkeleton } from "@/components/flights/results-skeleton";
 import type { AdSlotConfig } from "@/lib/ads/config";
 import type {
   AggregatedSearchResult,
@@ -16,10 +17,31 @@ type Props = {
   inlineAds?: AdSlotConfig[];
 };
 
+function providerStatusLabel(status: string): string {
+  switch (status) {
+    case "success":
+      return "ok";
+    case "partial":
+      return "parcial";
+    case "error":
+      return "falha";
+    case "timeout":
+      return "timeout";
+    case "disabled":
+      return "desativado";
+    case "circuit_open":
+      return "pausado";
+    default:
+      return status;
+  }
+}
+
 export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
   const [data, setData] = useState<AggregatedSearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retryToken, setRetryToken] = useState(0);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [sort, setSort] = useState<SortMode>("value");
   const [maxPrice, setMaxPrice] = useState("");
   const [stops, setStops] = useState("");
@@ -28,37 +50,36 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
   const [airline, setAirline] = useState("");
   const [baggageOnly, setBaggageOnly] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function run() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch("/api/flights/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(queryPayload),
-        });
-        const json = (await res.json()) as AggregatedSearchResult & {
-          error?: string;
-        };
-        if (!res.ok) {
-          throw new Error(json.error ?? "Falha na busca");
-        }
-        if (!cancelled) setData(json);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Erro na busca");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+  const runSearch = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/flights/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(queryPayload),
+        signal,
+      });
+      const json = (await res.json()) as AggregatedSearchResult & {
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(json.error ?? "Falha na busca");
       }
+      setData(json);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setError(err instanceof Error ? err.message : "Erro na busca");
+    } finally {
+      setLoading(false);
     }
-    void run();
-    return () => {
-      cancelled = true;
-    };
   }, [queryPayload]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void runSearch(controller.signal);
+    return () => controller.abort();
+  }, [runSearch, retryToken]);
 
   const filtered = useMemo(() => {
     if (!data) return [] as NormalizedFlightOffer[];
@@ -90,17 +111,23 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
   }, [data, maxPrice, stops, provider, priceType, airline, baggageOnly, sort]);
 
   if (loading) {
-    return (
-      <div className="glass" style={{ borderRadius: "1.25rem", padding: "2rem", color: "var(--ink)" }}>
-        Consultando fornecedores em paralelo…
-      </div>
-    );
+    return <ResultsSkeleton />;
   }
 
   if (error) {
     return (
-      <div className="glass" style={{ borderRadius: "1.25rem", padding: "2rem", color: "var(--danger)" }}>
-        {error}
+      <div className="glass results-feedback" style={{ borderRadius: "1.25rem", padding: "1.5rem" }}>
+        <h2 style={{ marginTop: 0, fontFamily: "var(--font-display)", color: "var(--danger)" }}>
+          Não foi possível concluir a busca
+        </h2>
+        <p style={{ marginTop: 0 }}>{error}</p>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => setRetryToken((n) => n + 1)}
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }
@@ -111,48 +138,122 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
     (o) => o.expiresAt && Date.parse(o.expiresAt) < Date.now(),
   ).length;
 
+  const failedProviders = data.providerStatuses.filter(
+    (p) =>
+      p.status === "error" ||
+      p.status === "circuit_open" ||
+      p.error?.code === "TIMEOUT",
+  );
+  const successProviders = data.providerStatuses.filter(
+    (p) => p.status === "success" || p.status === "partial",
+  );
+  const partialSources =
+    failedProviders.length > 0 &&
+    successProviders.length > 0 &&
+    data.offers.length > 0;
+  const allFailed =
+    data.offers.length === 0 &&
+    data.providerStatuses.every(
+      (p) =>
+        p.status === "error" ||
+        p.status === "disabled" ||
+        p.status === "circuit_open",
+    );
+
   return (
-    <div style={{ display: "grid", gap: "1.25rem" }}>
-      <section className="glass" style={{ borderRadius: "1.25rem", padding: "1.25rem" }}>
-        <h2 style={{ marginTop: 0, fontFamily: "var(--font-display)" }}>
-          {filtered.length} oferta(s) · {data.cached ? "cache" : "ao vivo"}
-        </h2>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem" }}>
-          <span className="btn btn-secondary" style={{ cursor: "default" }}>
-            Mais barato: {data.highlights.cheapestId ? "marcado nos cards" : "—"}
-          </span>
-          <span className="btn btn-secondary" style={{ cursor: "default" }}>
-            Mais rápido: {data.highlights.fastestId ? "marcado nos cards" : "—"}
-          </span>
-          <span className="btn btn-secondary" style={{ cursor: "default" }}>
-            Melhor custo-benefício: preço + duração + escalas + bagagem + flexibilidade
+    <div className="results-layout" style={{ display: "grid", gap: "1.25rem" }}>
+      {partialSources ? (
+        <div className="glass results-banner warn" role="status">
+          Algumas fontes não responderam a tempo. Exibindo resultados parciais
+          ({successProviders.length} de {data.providerStatuses.length} fontes).
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ marginLeft: "0.75rem" }}
+            onClick={() => setRetryToken((n) => n + 1)}
+          >
+            Buscar de novo
+          </button>
+        </div>
+      ) : null}
+
+      <section className="glass results-panel" style={{ borderRadius: "1.25rem", padding: "1.25rem" }}>
+        <div className="results-panel-header">
+          <h2 style={{ marginTop: 0, fontFamily: "var(--font-display)" }}>
+            {filtered.length} oferta(s) · {data.cached ? "cache" : "ao vivo"}
+          </h2>
+          <button
+            type="button"
+            className="btn btn-secondary results-filters-toggle"
+            onClick={() => setFiltersOpen((v) => !v)}
+            aria-expanded={filtersOpen}
+          >
+            {filtersOpen ? "Ocultar filtros" : "Filtros"}
+          </button>
+        </div>
+
+        <div className="results-highlights">
+          <span className="chip">Mais barato marcado nos cards</span>
+          <span className="chip">Mais rápido marcado nos cards</span>
+          <span className="chip">
+            Melhor custo-benefício: preço + duração + escalas + bagagem +
+            self-transfer
           </span>
         </div>
 
-        <div style={{ display: "grid", gap: "0.4rem", marginBottom: "1rem" }}>
+        {data.highlights.bestValueReasons?.length ? (
+          <div className="results-value-why" role="note">
+            <strong>Por que é o melhor custo-benefício:</strong>
+            <ul>
+              {data.highlights.bestValueReasons.map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        <div className="provider-status-list">
           {data.providerStatuses.map((p) => (
-            <div key={p.provider} style={{ fontSize: "0.9rem" }}>
-              <strong>{p.provider}</strong>: {p.status}
+            <div
+              key={p.provider}
+              className={`provider-status provider-status--${p.status}`}
+            >
+              <strong>{p.provider}</strong>: {providerStatusLabel(p.status)}
               {p.durationMs ? ` (${p.durationMs}ms)` : ""}
-              {p.error ? ` — ${p.error.message}` : ` — ${p.offers.length} ofertas`}
+              {p.error
+                ? ` — ${p.error.message}`
+                : ` — ${p.offers.length} ofertas`}
+              {p.error?.retryable ? (
+                <button
+                  type="button"
+                  className="linkish"
+                  onClick={() => setRetryToken((n) => n + 1)}
+                >
+                  Tentar novamente
+                </button>
+              ) : null}
             </div>
           ))}
         </div>
 
         {data.separateLegsComparison ? (
-          <p style={{ background: "rgba(201,133,26,0.12)", padding: "0.75rem 1rem", borderRadius: "0.75rem" }}>
+          <p className="results-banner warn" style={{ marginTop: "1rem" }}>
             Ida/volta menor: {data.separateLegsComparison.roundTripLowest ?? "—"} ·
-            Trechos separados menor: {data.separateLegsComparison.separateLowest ?? "—"}
+            Trechos separados menor:{" "}
+            {data.separateLegsComparison.separateLowest ?? "—"}
             <br />
             {data.separateLegsComparison.note}
           </p>
         ) : null}
 
         {expiredCount > 0 ? (
-          <p style={{ color: "var(--warn)" }}>{expiredCount} oferta(s) expirada(s) não podem ser compradas.</p>
+          <p style={{ color: "var(--warn)" }}>
+            {expiredCount} oferta(s) expirada(s) não podem ser compradas.
+          </p>
         ) : null}
 
         <div
+          className={`results-filters ${filtersOpen ? "is-open" : ""}`}
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
@@ -160,8 +261,12 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
           }}
         >
           <div className="field">
-            <label>Ordenar</label>
-            <select value={sort} onChange={(e) => setSort(e.target.value as SortMode)}>
+            <label htmlFor="sort">Ordenar</label>
+            <select
+              id="sort"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortMode)}
+            >
               <option value="value">Melhor custo-benefício</option>
               <option value="price">Menor preço</option>
               <option value="duration">Menor duração</option>
@@ -170,12 +275,18 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
             </select>
           </div>
           <div className="field">
-            <label>Preço máx.</label>
-            <input value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="ex: 1200" />
+            <label htmlFor="maxPrice">Preço máx.</label>
+            <input
+              id="maxPrice"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              placeholder="ex: 1200"
+              inputMode="decimal"
+            />
           </div>
           <div className="field">
-            <label>Escalas</label>
-            <select value={stops} onChange={(e) => setStops(e.target.value)}>
+            <label htmlFor="stops">Escalas</label>
+            <select id="stops" value={stops} onChange={(e) => setStops(e.target.value)}>
               <option value="">Todas</option>
               <option value="0">Direto</option>
               <option value="1">Até 1</option>
@@ -183,8 +294,12 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
             </select>
           </div>
           <div className="field">
-            <label>Provider</label>
-            <select value={provider} onChange={(e) => setProvider(e.target.value)}>
+            <label htmlFor="provider">Provider</label>
+            <select
+              id="provider"
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+            >
               <option value="">Todos</option>
               <option value="duffel">Duffel</option>
               <option value="ignav">Ignav</option>
@@ -194,8 +309,9 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
             </select>
           </div>
           <div className="field">
-            <label>Tipo</label>
+            <label htmlFor="priceType">Tipo</label>
             <select
+              id="priceType"
               value={priceType}
               onChange={(e) => setPriceType(e.target.value as "all" | "cash" | "points")}
             >
@@ -205,10 +321,15 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
             </select>
           </div>
           <div className="field">
-            <label>Companhia</label>
-            <input value={airline} onChange={(e) => setAirline(e.target.value)} placeholder="LATAM, G3…" />
+            <label htmlFor="airline">Companhia</label>
+            <input
+              id="airline"
+              value={airline}
+              onChange={(e) => setAirline(e.target.value)}
+              placeholder="LATAM, G3…"
+            />
           </div>
-          <label style={{ display: "flex", alignItems: "end", gap: "0.5rem", paddingBottom: "0.6rem" }}>
+          <label className="checkbox-field">
             <input
               type="checkbox"
               checked={baggageOnly}
@@ -220,10 +341,57 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
       </section>
 
       <section style={{ display: "grid", gap: "1rem" }}>
-        {filtered.length === 0 ? (
-          <div className="glass" style={{ borderRadius: "1.25rem", padding: "1.5rem" }}>
-            Nenhuma oferta com os filtros atuais. Se todos os providers estiverem desativados,
-            configure as chaves de API no servidor.
+        {allFailed ? (
+          <div className="glass results-feedback" style={{ borderRadius: "1.25rem", padding: "1.5rem" }}>
+            <h3 style={{ marginTop: 0, fontFamily: "var(--font-display)" }}>
+              Nenhuma fonte disponível
+            </h3>
+            <p>
+              Todos os fornecedores falharam, estão desativados ou pausados. Verifique as
+              chaves de API no servidor ou tente novamente em instantes.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setRetryToken((n) => n + 1)}
+            >
+              Tentar novamente
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="glass results-feedback" style={{ borderRadius: "1.25rem", padding: "1.5rem" }}>
+            <h3 style={{ marginTop: 0, fontFamily: "var(--font-display)" }}>
+              Nenhuma oferta encontrada
+            </h3>
+            <p>
+              {data.offers.length === 0
+                ? "Não há ofertas para estes critérios no momento."
+                : "Nenhuma oferta combina com os filtros atuais. Ajuste preço, escalas ou companhia."}
+            </p>
+            {data.offers.length > 0 ? (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setMaxPrice("");
+                  setStops("");
+                  setProvider("");
+                  setPriceType("all");
+                  setAirline("");
+                  setBaggageOnly(false);
+                }}
+              >
+                Limpar filtros
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setRetryToken((n) => n + 1)}
+              >
+                Tentar novamente
+              </button>
+            )}
           </div>
         ) : (
           filtered.map((offer, index) => (
@@ -238,6 +406,11 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
                       : offer.id === data.highlights.bestValueId
                         ? "Melhor custo-benefício"
                         : undefined
+                }
+                valueReasons={
+                  offer.id === data.highlights.bestValueId
+                    ? data.highlights.bestValueReasons
+                    : undefined
                 }
               />
               {inlineAds.length > 0 && index === 2

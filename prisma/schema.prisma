@@ -117,15 +117,18 @@ model NotificationLog {
 }
 
 model ProviderStatus {
-  id            String    @id @default(cuid())
-  provider      String    @unique
-  enabled       Boolean   @default(true)
-  lastStatus    String?
-  lastLatencyMs Int?
-  lastSuccessAt DateTime?
-  lastFailureAt DateTime?
-  lastError     String?
-  updatedAt     DateTime  @updatedAt
+  id                   String    @id @default(cuid())
+  provider             String    @unique
+  enabled              Boolean   @default(true)
+  lastStatus           String?
+  lastLatencyMs        Int?
+  lastSuccessAt        DateTime?
+  lastFailureAt        DateTime?
+  lastError            String?
+  consecutiveFailures  Int       @default(0)
+  circuitState         String    @default("closed")
+  circuitOpenedAt      DateTime?
+  updatedAt            DateTime  @updatedAt
 }
 
 model AffiliateClick {

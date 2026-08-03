@@ -3,8 +3,18 @@ import {
   getAirportAttribution,
   searchAirports,
 } from "@/lib/airports";
+import { clientIp, rateLimit } from "@/lib/security/rate-limit";
 
 export async function GET(request: Request) {
+  const ip = clientIp(request);
+  const rl = rateLimit(`airports:${ip}`, 120, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Limite de consultas de aeroporto atingido." },
+      { status: 429 },
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") ?? "";
   const limit = Math.min(Number(searchParams.get("limit") ?? "8"), 20);

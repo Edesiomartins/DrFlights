@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { alertSchema } from "@/lib/flights/validation";
+import { clientIp, rateLimit } from "@/lib/security/rate-limit";
 
 export async function GET() {
   const session = await auth();
@@ -20,6 +21,15 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  }
+
+  const ip = clientIp(request);
+  const rl = rateLimit(`alerts:${session.user.id}:${ip}`, 20, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Limite de alertas atingido. Aguarde um minuto." },
+      { status: 429 },
+    );
   }
 
   let body: unknown;

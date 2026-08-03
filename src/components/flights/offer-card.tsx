@@ -12,9 +12,10 @@ import { buildGoUrl } from "@/lib/ads/config";
 type Props = {
   offer: NormalizedFlightOffer;
   badge?: string;
+  valueReasons?: string[];
 };
 
-export function OfferCard({ offer, badge }: Props) {
+export function OfferCard({ offer, badge, valueReasons }: Props) {
   const expired =
     offer.expiresAt != null && Date.parse(offer.expiresAt) < Date.now();
   const first = offer.slices[0];
@@ -29,7 +30,8 @@ export function OfferCard({ offer, badge }: Props) {
 
   return (
     <article
-      className="glass animate-rise"
+      className="glass animate-rise offer-card"
+      data-testid="offer-card"
       style={{
         borderRadius: "1.25rem",
         padding: "1.1rem 1.2rem",
@@ -38,8 +40,9 @@ export function OfferCard({ offer, badge }: Props) {
         gap: "0.75rem",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+      <div className="offer-card-header" style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
         <div>
+          {badge ? <span className="offer-badge">{badge}</span> : null}
           <div style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", fontWeight: 700 }}>
             {offer.airlineName}
             {offer.airlineCode &&
@@ -53,7 +56,6 @@ export function OfferCard({ offer, badge }: Props) {
           <div style={{ fontSize: "0.9rem", opacity: 0.75 }}>
             Fonte: {offer.provider}
             {offer.separateTickets ? " · bilhetes separados / self-transfer" : ""}
-            {badge ? ` · ${badge}` : ""}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
@@ -157,7 +159,18 @@ export function OfferCard({ offer, badge }: Props) {
         </div>
       ) : null}
 
-      <div>
+      {valueReasons && valueReasons.length > 0 ? (
+        <div className="offer-value-reasons" data-testid="value-reasons">
+          <strong>Por que custo-benefício:</strong>
+          <ul>
+            {valueReasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className="offer-card-actions">
         {expired ? (
           <button className="btn btn-secondary" disabled>
             Oferta expirada
@@ -168,6 +181,7 @@ export function OfferCard({ offer, badge }: Props) {
             href={bookingHref}
             target="_blank"
             rel="noopener noreferrer sponsored"
+            data-testid="offer-booking-link"
           >
             Continuar no fornecedor
           </a>

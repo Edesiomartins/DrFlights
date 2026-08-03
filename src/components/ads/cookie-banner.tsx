@@ -39,6 +39,7 @@ export function CookieBanner() {
       role="dialog"
       aria-live="polite"
       aria-label="Consentimento de cookies"
+      data-testid="cookie-banner"
       style={{
         position: "fixed",
         zIndex: 80,
@@ -72,10 +73,20 @@ export function CookieBanner() {
         </p>
       </div>
       <div style={{ display: "flex", gap: "0.55rem", flexWrap: "wrap" }}>
-        <button type="button" className="btn btn-primary" onClick={() => save("accepted")}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-testid="cookie-accept"
+          onClick={() => save("accepted")}
+        >
           Aceitar
         </button>
-        <button type="button" className="btn btn-secondary" onClick={() => save("essential")}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          data-testid="cookie-reject-ads"
+          onClick={() => save("essential")}
+        >
           Apenas essenciais
         </button>
       </div>

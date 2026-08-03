@@ -3,6 +3,13 @@ import { prisma } from "@/lib/db/prisma";
 import { dedupeOffers, flattenGroups } from "@/lib/flights/deduplication/dedupe";
 import { buildSearchRequestHash } from "@/lib/flights/normalization/helpers";
 import { classifyPromotion } from "@/lib/flights/promotions/classify";
+import {
+  canCallProvider,
+  circuitFieldsForPersist,
+  hydrateCircuitBreakers,
+  recordProviderFailure,
+  recordProviderSuccess,
+} from "@/lib/flights/providers/circuit-breaker";
 import { getFlightProviders } from "@/lib/flights/providers/registry";
 import { pickHighlights, rankOffers } from "@/lib/flights/ranking/value-score";
 import type {
@@ -11,6 +18,7 @@ import type {
   NormalizedFlightOffer,
   ProviderSearchResult,
 } from "@/lib/flights/types";
+import { reportMonitoringEvent } from "@/lib/monitoring";
 import {
   getDefaultCurrency,
   getSearchCacheTtlSeconds,
@@ -31,24 +39,33 @@ function toPrismaTripType(tripType: FlightSearchInput["tripType"]): PrismaTripTy
 async function persistProviderStatuses(results: ProviderSearchResult[]) {
   for (const result of results) {
     const ok = result.status === "success" || result.status === "partial";
+    const circuit = circuitFieldsForPersist(result.provider);
     await prisma.providerStatus.upsert({
       where: { provider: result.provider },
       create: {
         provider: result.provider,
-        enabled: result.status !== "disabled",
+        enabled: result.status !== "disabled" && result.status !== "circuit_open",
         lastStatus: result.status,
         lastLatencyMs: result.durationMs,
         lastSuccessAt: ok ? new Date() : undefined,
-        lastFailureAt: ok ? undefined : new Date(),
+        lastFailureAt:
+          ok || result.status === "circuit_open" ? undefined : new Date(),
         lastError: result.error?.message,
+        consecutiveFailures: circuit.consecutiveFailures,
+        circuitState: circuit.circuitState,
+        circuitOpenedAt: circuit.circuitOpenedAt,
       },
       update: {
         enabled: result.status !== "disabled",
         lastStatus: result.status,
         lastLatencyMs: result.durationMs,
         lastSuccessAt: ok ? new Date() : undefined,
-        lastFailureAt: ok ? undefined : new Date(),
+        lastFailureAt:
+          ok || result.status === "circuit_open" ? undefined : new Date(),
         lastError: result.error?.message ?? null,
+        consecutiveFailures: circuit.consecutiveFailures,
+        circuitState: circuit.circuitState,
+        circuitOpenedAt: circuit.circuitOpenedAt,
       },
     });
   }
@@ -85,7 +102,7 @@ async function applyPromotions(
       const dayDiff = targetDate
         ? Math.abs(
             (Date.parse(s.departureDate) - Date.parse(targetDate)) /
-              (86400000),
+              86400000,
           )
         : 0;
       return { amount: s.amount!, dayDiff };
@@ -200,10 +217,95 @@ function combineSeparateLegs(
   return combined;
 }
 
+function trackCircuitOutcome(result: ProviderSearchResult): void {
+  if (result.status === "circuit_open" || result.status === "disabled") return;
+  const hardFailure =
+    result.status === "error" &&
+    result.error?.code !== "NO_RESULTS" &&
+    (result.error?.retryable !== false || result.error?.code === "TIMEOUT");
+
+  if (result.status === "success" || result.status === "partial") {
+    recordProviderSuccess(result.provider);
+    return;
+  }
+
+  if (hardFailure || result.status === "error") {
+    // Auth errors shouldn't trip the breaker forever in open loop —
+    // still count as failure so we briefly back off.
+    recordProviderFailure(result.provider);
+  }
+}
+
+async function searchProviders(
+  input: FlightSearchInput,
+): Promise<ProviderSearchResult[]> {
+  const providers = getFlightProviders();
+  await hydrateCircuitBreakers(providers.map((p) => p.id));
+
+  const settled = await Promise.allSettled(
+    providers.map(async (provider) => {
+      if (!canCallProvider(provider.id)) {
+        return {
+          provider: provider.id,
+          status: "circuit_open" as const,
+          offers: [],
+          durationMs: 0,
+          error: {
+            code: "CIRCUIT_OPEN",
+            message:
+              "Fonte temporariamente pausada após falhas consecutivas. Tentaremos de novo em breve.",
+            retryable: true,
+          },
+        } satisfies ProviderSearchResult;
+      }
+      return provider.search(input);
+    }),
+  );
+
+  return settled.map((result, idx) => {
+    const provider = providers[idx]!;
+    if (result.status === "fulfilled") {
+      trackCircuitOutcome(result.value);
+      reportMonitoringEvent({
+        type: "provider_latency",
+        provider: provider.id,
+        durationMs: result.value.durationMs,
+        status: result.value.status,
+        tags: { code: result.value.error?.code },
+      });
+      return result.value;
+    }
+    recordProviderFailure(provider.id);
+    const unexpected: ProviderSearchResult = {
+      provider: provider.id,
+      status: "error",
+      offers: [],
+      durationMs: 0,
+      error: {
+        code: "UNEXPECTED",
+        message:
+          result.reason instanceof Error
+            ? result.reason.message
+            : "Falha inesperada",
+        retryable: true,
+      },
+    };
+    reportMonitoringEvent({
+      type: "provider_latency",
+      provider: provider.id,
+      durationMs: 0,
+      status: "error",
+      tags: { code: "UNEXPECTED" },
+    });
+    return unexpected;
+  });
+}
+
 export async function searchFlights(
   input: FlightSearchInput,
   options?: { userId?: string | null; bypassCache?: boolean },
 ): Promise<AggregatedSearchResult> {
+  const started = Date.now();
   const requestHash = buildSearchRequestHash(input);
   const ttl = getSearchCacheTtlSeconds();
 
@@ -219,43 +321,27 @@ export async function searchFlights(
     if (cached) {
       const offers = cached.normalizedResults as unknown as NormalizedFlightOffer[];
       const groups = dedupeOffers(offers);
+      const flat = flattenGroups(groups);
+      reportMonitoringEvent({
+        type: "search_latency",
+        durationMs: Date.now() - started,
+        status: "cached",
+        tags: { offerCount: flat.length },
+      });
       return {
         searchId: cached.id,
         cached: true,
         requestHash,
-        offers: flattenGroups(groups),
+        offers: flat,
         groups,
         providerStatuses:
           cached.providerStatuses as unknown as ProviderSearchResult[],
-        highlights: pickHighlights(flattenGroups(groups)),
+        highlights: pickHighlights(flat),
       };
     }
   }
 
-  const providers = getFlightProviders();
-  const settled = await Promise.allSettled(
-    providers.map((p) => p.search(input)),
-  );
-
-  const providerStatuses: ProviderSearchResult[] = settled.map((result, idx) => {
-    const provider = providers[idx]!;
-    if (result.status === "fulfilled") return result.value;
-    return {
-      provider: provider.id,
-      status: "error" as const,
-      offers: [],
-      durationMs: 0,
-      error: {
-        code: "UNEXPECTED",
-        message:
-          result.reason instanceof Error
-            ? result.reason.message
-            : "Falha inesperada",
-        retryable: true,
-      },
-    };
-  });
-
+  const providerStatuses = await searchProviders(input);
   let offers = providerStatuses.flatMap((p) => p.offers);
 
   let separateLegsComparison: AggregatedSearchResult["separateLegsComparison"];
@@ -284,17 +370,13 @@ export async function searchFlights(
       compareSeparateLegs: false,
     };
 
-    const [outSettled, inSettled] = await Promise.all([
-      Promise.allSettled(providers.map((p) => p.search(outInput))),
-      Promise.allSettled(providers.map((p) => p.search(inInput))),
+    const [outboundStatuses, inboundStatuses] = await Promise.all([
+      searchProviders(outInput),
+      searchProviders(inInput),
     ]);
 
-    const outbound = outSettled
-      .filter((r): r is PromiseFulfilledResult<ProviderSearchResult> => r.status === "fulfilled")
-      .flatMap((r) => r.value.offers);
-    const inbound = inSettled
-      .filter((r): r is PromiseFulfilledResult<ProviderSearchResult> => r.status === "fulfilled")
-      .flatMap((r) => r.value.offers);
+    const outbound = outboundStatuses.flatMap((r) => r.offers);
+    const inbound = inboundStatuses.flatMap((r) => r.offers);
 
     const combined = combineSeparateLegs(outbound, inbound);
     offers = [...offers, ...combined];
@@ -339,14 +421,27 @@ export async function searchFlights(
     saveSnapshots(flat, input),
   ]);
 
+  const durationMs = Date.now() - started;
   logger.info("flights.search.completed", {
     searchId: saved.id,
     offerCount: flat.length,
+    durationMs,
     providers: providerStatuses.map((p) => ({
       id: p.provider,
       status: p.status,
       durationMs: p.durationMs,
     })),
+  });
+
+  reportMonitoringEvent({
+    type: "search_latency",
+    durationMs,
+    status: "live",
+    tags: {
+      offerCount: flat.length,
+      providerErrors: providerStatuses.filter((p) => p.status === "error").length,
+      circuitOpen: providerStatuses.filter((p) => p.status === "circuit_open").length,
+    },
   });
 
   return {

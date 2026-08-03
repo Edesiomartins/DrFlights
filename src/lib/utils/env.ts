@@ -59,3 +59,7 @@ export function getAppName(): string {
 export function getAppVersion(): string {
   return read("npm_package_version") ?? "1.0.0";
 }
+
+export function getMonitoringWebhookUrl(): string | undefined {
+  return read("MONITORING_WEBHOOK_URL") ?? read("MONITORING_ENDPOINT");
+}

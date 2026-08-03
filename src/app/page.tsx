@@ -7,17 +7,7 @@ export default function HomePage() {
 
   return (
     <div className="shell" style={{ paddingBottom: "3rem" }}>
-      <section
-        style={{
-          minHeight: "calc(100vh - 7rem)",
-          display: "grid",
-          alignContent: "center",
-          gap: "1.5rem",
-          color: "var(--sand)",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
+      <section className="home-hero">
         <div
           aria-hidden
           className="animate-drift"
@@ -32,24 +22,12 @@ export default function HomePage() {
             pointerEvents: "none",
           }}
         />
-        <p
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(2.8rem, 8vw, 5.2rem)",
-            lineHeight: 0.95,
-            margin: 0,
-            fontWeight: 700,
-            letterSpacing: "-0.03em",
-            maxWidth: "12ch",
-          }}
-        >
-          {appName}
-        </p>
-        <p style={{ margin: 0, maxWidth: "38ch", fontSize: "1.15rem", opacity: 0.9 }}>
+        <p className="home-brand">{appName}</p>
+        <p className="home-lead">
           Compare dinheiro e milhas em um só lugar e siga para o fornecedor na hora de comprar.
         </p>
         <AdSpace placement="home_top" style={{ maxWidth: 920, color: "var(--ink)" }} />
-        <div style={{ maxWidth: 920 }}>
+        <div style={{ maxWidth: 920, width: "100%" }}>
           <SearchForm />
         </div>
         <AdSpace placement="home_bottom" style={{ maxWidth: 920, color: "var(--ink)" }} />

@@ -8,22 +8,34 @@ import type { NormalizedFlightOffer, SortMode } from "@/lib/flights/types";
  *         + durationWeight * normalizedDuration
  *         + stopsWeight * stops
  *         + layoverPenalty
+ *         + selfTransferPenalty
  *         - baggageBonus
  *         - flexibilityBonus
  *
  * Where:
  * - normalizedPrice = totalAmount / medianPrice (cash) or points proxy
  * - layoverPenalty = max(0, (connectionMinutes - 180) / 60) * 0.15  (per long connection)
+ * - selfTransferPenalty = 0.25 when separateTickets / self-transfer
  * - baggageBonus = 0.2 if checked bag included, +0.1 if carry-on mentioned
  * - flexibilityBonus = 0.15 if refundable, +0.1 if changeable
  *
  * Offers without a cash price are ranked after cash offers for "price"/"value".
  */
-export function computeValueScore(
+export type ValueScoreBreakdown = {
+  score: number;
+  normPrice: number;
+  normDuration: number;
+  stopsComponent: number;
+  layoverPenalty: number;
+  selfTransferPenalty: number;
+  baggageBonus: number;
+};
+
+export function computeValueScoreBreakdown(
   offer: NormalizedFlightOffer,
   medianPrice: number,
   medianDuration: number,
-): number {
+): ValueScoreBreakdown {
   const price =
     offer.priceType === "cash" && offer.totalAmount != null
       ? offer.totalAmount
@@ -56,13 +68,34 @@ export function computeValueScore(
   if (offer.refundable) baggageBonus += 0.15;
   if (offer.changeable) baggageBonus += 0.1;
 
-  return (
+  const selfTransferPenalty = offer.separateTickets ? 0.25 : 0;
+  const stopsComponent = 0.15 * offer.totalStops;
+
+  const score =
     0.45 * normPrice +
     0.3 * normDuration +
-    0.15 * offer.totalStops +
-    layoverPenalty -
-    baggageBonus
-  );
+    stopsComponent +
+    layoverPenalty +
+    selfTransferPenalty -
+    baggageBonus;
+
+  return {
+    score,
+    normPrice,
+    normDuration,
+    stopsComponent,
+    layoverPenalty,
+    selfTransferPenalty,
+    baggageBonus,
+  };
+}
+
+export function computeValueScore(
+  offer: NormalizedFlightOffer,
+  medianPrice: number,
+  medianDuration: number,
+): number {
+  return computeValueScoreBreakdown(offer, medianPrice, medianDuration).score;
 }
 
 function median(nums: number[]): number {
@@ -75,16 +108,26 @@ function median(nums: number[]): number {
   return sorted[mid] ?? 0;
 }
 
-export function rankOffers(
-  offers: NormalizedFlightOffer[],
-  mode: SortMode,
-): NormalizedFlightOffer[] {
+export function getRankingMedians(offers: NormalizedFlightOffer[]): {
+  medianPrice: number;
+  medianDuration: number;
+} {
   const cashPrices = offers
     .filter((o) => o.priceType === "cash" && o.totalAmount != null)
     .map((o) => o.totalAmount!);
   const durations = offers.map((o) => o.totalDurationMinutes);
-  const medPrice = median(cashPrices) || 1;
-  const medDuration = median(durations) || 1;
+  return {
+    medianPrice: median(cashPrices) || 1,
+    medianDuration: median(durations) || 1,
+  };
+}
+
+export function rankOffers(
+  offers: NormalizedFlightOffer[],
+  mode: SortMode,
+): NormalizedFlightOffer[] {
+  const { medianPrice: medPrice, medianDuration: medDuration } =
+    getRankingMedians(offers);
 
   const scored = offers.map((offer) => ({
     offer,
@@ -123,18 +166,83 @@ export function rankOffers(
   return scored.map((s) => s.offer);
 }
 
+/**
+ * Human-readable reasons why an offer ranks as best value vs the result set.
+ */
+export function explainBestValue(
+  offer: NormalizedFlightOffer,
+  pool: NormalizedFlightOffer[],
+): string[] {
+  if (pool.length === 0) return [];
+  const { medianPrice, medianDuration } = getRankingMedians(pool);
+  const breakdown = computeValueScoreBreakdown(offer, medianPrice, medianDuration);
+  const reasons: string[] = [];
+
+  const byPrice = rankOffers(pool, "price");
+  const cheapest = byPrice[0];
+  if (
+    offer.priceType === "cash" &&
+    offer.totalAmount != null &&
+    cheapest?.totalAmount != null
+  ) {
+    if (offer.id === cheapest.id) {
+      reasons.push("Menor preço entre as ofertas comparadas");
+    } else {
+      const delta = offer.totalAmount - cheapest.totalAmount;
+      if (delta <= cheapest.totalAmount * 0.12) {
+        reasons.push("Preço próximo do mais barato");
+      } else {
+        reasons.push("Preço competitivo em relação à mediana");
+      }
+    }
+  }
+
+  if (breakdown.normDuration <= 1.05) {
+    reasons.push("Duração alinhada ou melhor que a mediana");
+  } else if (breakdown.normDuration <= 1.25) {
+    reasons.push("Duração razoável para o preço");
+  }
+
+  if (offer.totalStops === 0) {
+    reasons.push("Voo direto (sem escalas)");
+  } else if (offer.totalStops === 1) {
+    reasons.push("Poucas escalas");
+  }
+
+  if (breakdown.baggageBonus >= 0.2) {
+    reasons.push("Bagagem considerada na pontuação");
+  }
+  if (offer.refundable || offer.changeable) {
+    reasons.push("Flexibilidade (reembolso/alteração) valorizada");
+  }
+  if (offer.separateTickets) {
+    reasons.push("Penalizado por self-transfer / bilhetes separados");
+  } else {
+    reasons.push("Sem self-transfer");
+  }
+
+  if (reasons.length === 0) {
+    reasons.push("Melhor equilíbrio entre preço, duração, escalas e bagagem");
+  }
+
+  return reasons.slice(0, 5);
+}
+
 export function pickHighlights(offers: NormalizedFlightOffer[]): {
   cheapestId?: string;
   fastestId?: string;
   bestValueId?: string;
+  bestValueReasons?: string[];
 } {
   if (offers.length === 0) return {};
   const byPrice = rankOffers(offers, "price");
   const byDuration = rankOffers(offers, "duration");
   const byValue = rankOffers(offers, "value");
+  const best = byValue[0];
   return {
     cheapestId: byPrice[0]?.id,
     fastestId: byDuration[0]?.id,
-    bestValueId: byValue[0]?.id,
+    bestValueId: best?.id,
+    bestValueReasons: best ? explainBestValue(best, offers) : undefined,
   };
 }

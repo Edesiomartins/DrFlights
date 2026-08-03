@@ -20,10 +20,13 @@ export function AirportInput({ id, label, value, onChange }: Props) {
   const [query, setQuery] = useState(value);
   const [options, setOptions] = useState<Airport[]>([]);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [userEdited, setUserEdited] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setQuery(value);
+    setUserEdited(false);
   }, [value]);
 
   useEffect(() => {
@@ -35,65 +38,64 @@ export function AirportInput({ id, label, value, onChange }: Props) {
   }, []);
 
   useEffect(() => {
-    if (query.trim().length < 1) {
+    if (!userEdited || query.trim().length < 1) {
       setOptions([]);
+      setLoading(false);
       return;
     }
     const timer = setTimeout(async () => {
-      const res = await fetch(`/api/airports?q=${encodeURIComponent(query)}&limit=8`);
-      if (!res.ok) return;
-      const data = (await res.json()) as { airports: Airport[] };
-      setOptions(data.airports);
-      setOpen(true);
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `/api/airports?q=${encodeURIComponent(query)}&limit=8`,
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as { airports: Airport[] };
+        setOptions(data.airports);
+        setOpen(true);
+      } finally {
+        setLoading(false);
+      }
     }, 180);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, userEdited]);
 
   return (
-    <div className="field" ref={boxRef} style={{ position: "relative" }}>
+    <div className="field airport-field" ref={boxRef} style={{ position: "relative" }}>
       <label htmlFor={id}>{label}</label>
       <input
         id={id}
         value={query}
         autoComplete="off"
-        placeholder="Cidade ou IATA"
+        inputMode="search"
+        enterKeyHint="search"
+        placeholder="Cidade, aeroporto ou IATA"
+        aria-autocomplete="list"
+        aria-controls={`${id}-listbox`}
         onChange={(e) => {
+          setUserEdited(true);
           setQuery(e.target.value);
           if (e.target.value.length === 3) onChange(e.target.value.toUpperCase());
         }}
-        onFocus={() => options.length > 0 && setOpen(true)}
+        onFocus={() => {
+          if (userEdited && options.length > 0) setOpen(true);
+        }}
       />
+      {loading ? (
+        <span className="airport-loading" aria-hidden>
+          …
+        </span>
+      ) : null}
       {open && options.length > 0 ? (
         <ul
-          style={{
-            position: "absolute",
-            zIndex: 20,
-            top: "100%",
-            left: 0,
-            right: 0,
-            margin: "0.25rem 0 0",
-            padding: 0,
-            listStyle: "none",
-            background: "#fff",
-            border: "1px solid rgba(16,32,51,0.12)",
-            borderRadius: "0.85rem",
-            maxHeight: 240,
-            overflow: "auto",
-            boxShadow: "var(--shadow)",
-          }}
+          id={`${id}-listbox`}
+          className="airport-dropdown"
+          data-testid={`${id}-airport-list`}
         >
           {options.map((airport) => (
             <li key={airport.iata}>
               <button
                 type="button"
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "0.7rem 0.85rem",
-                  border: "none",
-                  background: "transparent",
-                  cursor: "pointer",
-                }}
                 onClick={() => {
                   onChange(airport.iata);
                   setQuery(`${airport.city} (${airport.iata})`);
@@ -101,7 +103,7 @@ export function AirportInput({ id, label, value, onChange }: Props) {
                 }}
               >
                 <strong>{airport.iata}</strong> · {airport.city} — {airport.name}
-                <div style={{ fontSize: "0.8rem", opacity: 0.7 }}>{airport.country}</div>
+                <div className="airport-country">{airport.country}</div>
               </button>
             </li>
           ))}

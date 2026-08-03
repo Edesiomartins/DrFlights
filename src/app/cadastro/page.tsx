@@ -53,6 +53,7 @@ export default function CadastroPage() {
       <form
         className="glass"
         onSubmit={onSubmit}
+        data-testid="register-form"
         style={{ borderRadius: "1.25rem", padding: "1.5rem", display: "grid", gap: "1rem" }}
       >
         <div className="field">
@@ -68,7 +69,7 @@ export default function CadastroPage() {
           <input id="password" name="password" type="password" required minLength={8} />
         </div>
         {error ? <p style={{ color: "var(--danger)", margin: 0 }}>{error}</p> : null}
-        <button className="btn btn-primary" type="submit" disabled={loading}>
+        <button className="btn btn-primary" type="submit" disabled={loading} data-testid="register-submit">
           {loading ? "Criando…" : "Criar conta"}
         </button>
         <p style={{ margin: 0, fontSize: "0.9rem" }}>

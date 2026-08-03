@@ -48,7 +48,8 @@ export function AlertsClient() {
   async function onCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    const form = new FormData(event.currentTarget);
+    const formEl = event.currentTarget;
+    const form = new FormData(formEl);
     const payload = {
       origin: String(form.get("origin")).toUpperCase(),
       destination: String(form.get("destination")).toUpperCase(),
@@ -75,7 +76,7 @@ export function AlertsClient() {
       setError(json.error ?? "Falha ao criar alerta.");
       return;
     }
-    event.currentTarget.reset();
+    formEl.reset();
     await load();
   }
 
@@ -104,6 +105,7 @@ export function AlertsClient() {
       <form
         className="glass"
         onSubmit={onCreate}
+        data-testid="alert-form"
         style={{
           borderRadius: "1.25rem",
           padding: "1.25rem",
@@ -162,7 +164,7 @@ export function AlertsClient() {
           <input name="maxStops" type="number" min={0} max={3} />
         </div>
         <div style={{ display: "flex", alignItems: "end" }}>
-          <button className="btn btn-primary" type="submit">
+          <button className="btn btn-primary" type="submit" data-testid="alert-submit">
             Criar alerta
           </button>
         </div>

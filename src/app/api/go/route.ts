@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { logAffiliateClick } from "@/lib/ads/clicks";
 import { getAdSlotById, isSafeHttpUrl } from "@/lib/ads/config";
 import { getAppUrl } from "@/lib/utils/env";
-import { clientIp } from "@/lib/security/rate-limit";
+import { clientIp, rateLimit } from "@/lib/security/rate-limit";
 
 /**
  * Affiliate / outbound redirect with click logging.
@@ -10,6 +10,15 @@ import { clientIp } from "@/lib/security/rate-limit";
  * If `slot` is provided and found, destination comes from ADS_CONFIG_JSON.
  */
 export async function GET(request: Request) {
+  const ip = clientIp(request);
+  const rl = rateLimit(`outbound:${ip}`, 60, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Muitos redirecionamentos. Aguarde um momento." },
+      { status: 429 },
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const slotId = searchParams.get("slot")?.trim() || undefined;
   const placement = (searchParams.get("placement") ?? "external").slice(0, 80);

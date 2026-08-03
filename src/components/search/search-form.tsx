@@ -29,6 +29,19 @@ export function SearchForm() {
     event.preventDefault();
     setError(null);
 
+    if (!origin || !destination) {
+      setError("Selecione origem e destino.");
+      return;
+    }
+    if (!depart) {
+      setError("Informe a data de ida.");
+      return;
+    }
+    if (tripType === "round_trip" && !ret) {
+      setError("Informe a data de volta.");
+      return;
+    }
+
     const slices =
       tripType === "multi_city"
         ? [
@@ -60,8 +73,12 @@ export function SearchForm() {
   }
 
   return (
-    <form className="glass animate-rise" onSubmit={onSubmit} style={{ borderRadius: "1.5rem", padding: "1.5rem" }}>
-      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.25rem" }}>
+    <form
+      className="glass animate-rise search-form"
+      onSubmit={onSubmit}
+      data-testid="search-form"
+    >
+      <div className="trip-type-row" role="group" aria-label="Tipo de viagem">
         {(
           [
             ["round_trip", "Ida e volta"],
@@ -80,13 +97,7 @@ export function SearchForm() {
         ))}
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: "1rem",
-        }}
-      >
+      <div className="search-grid">
         <AirportInput id="origin" label="Origem" value={origin} onChange={setOrigin} />
         <AirportInput
           id="destination"
@@ -96,12 +107,24 @@ export function SearchForm() {
         />
         <div className="field">
           <label htmlFor="depart">Data de ida</label>
-          <input id="depart" type="date" required value={depart} onChange={(e) => setDepart(e.target.value)} />
+          <input
+            id="depart"
+            type="date"
+            required
+            value={depart}
+            onChange={(e) => setDepart(e.target.value)}
+          />
         </div>
         {tripType === "round_trip" ? (
           <div className="field">
             <label htmlFor="return">Data de volta</label>
-            <input id="return" type="date" required value={ret} onChange={(e) => setRet(e.target.value)} />
+            <input
+              id="return"
+              type="date"
+              required
+              value={ret}
+              onChange={(e) => setRet(e.target.value)}
+            />
           </div>
         ) : null}
         <div className="field">
@@ -126,7 +149,7 @@ export function SearchForm() {
             onChange={(e) => setChildren(Number(e.target.value))}
           />
         </div>
-        <div className="field">
+        <div className="field search-field-secondary">
           <label htmlFor="infants">Bebês</label>
           <input
             id="infants"
@@ -137,7 +160,7 @@ export function SearchForm() {
             onChange={(e) => setInfants(Number(e.target.value))}
           />
         </div>
-        <div className="field">
+        <div className="field search-field-secondary">
           <label htmlFor="cabin">Cabine</label>
           <select id="cabin" value={cabin} onChange={(e) => setCabin(e.target.value)}>
             <option value="economy">Econômica</option>
@@ -146,7 +169,7 @@ export function SearchForm() {
             <option value="first">Primeira</option>
           </select>
         </div>
-        <div className="field">
+        <div className="field search-field-secondary">
           <label htmlFor="stops">Máx. escalas</label>
           <select id="stops" value={maxStops} onChange={(e) => setMaxStops(e.target.value)}>
             <option value="">Qualquer</option>
@@ -158,16 +181,9 @@ export function SearchForm() {
       </div>
 
       {tripType === "multi_city" ? (
-        <div style={{ marginTop: "1rem", display: "grid", gap: "0.75rem" }}>
+        <div className="multi-city-block">
           {extraSlices.map((slice, index) => (
-            <div
-              key={index}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-                gap: "0.75rem",
-              }}
-            >
+            <div key={index} className="search-grid">
               <div className="field">
                 <label>Origem {index + 2}</label>
                 <input
@@ -220,7 +236,7 @@ export function SearchForm() {
       ) : null}
 
       {tripType === "round_trip" ? (
-        <label style={{ display: "flex", gap: "0.6rem", marginTop: "1rem", alignItems: "center" }}>
+        <label className="checkbox-field compare-legs">
           <input
             type="checkbox"
             checked={compareSeparate}
@@ -230,10 +246,15 @@ export function SearchForm() {
         </label>
       ) : null}
 
-      {error ? <p style={{ color: "var(--danger)", marginTop: "1rem" }}>{error}</p> : null}
+      {error ? <p className="form-error">{error}</p> : null}
 
-      <div style={{ marginTop: "1.25rem" }}>
-        <button className="btn btn-primary" type="submit" disabled={pending}>
+      <div className="search-submit">
+        <button
+          className="btn btn-primary search-submit-btn"
+          type="submit"
+          disabled={pending}
+          data-testid="search-submit"
+        >
           {pending ? "Preparando busca…" : "Buscar passagens"}
         </button>
       </div>

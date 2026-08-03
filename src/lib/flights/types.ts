@@ -104,7 +104,7 @@ export type ProviderError = {
 
 export type ProviderSearchResult = {
   provider: string;
-  status: "success" | "partial" | "error" | "disabled";
+  status: "success" | "partial" | "error" | "disabled" | "circuit_open";
   offers: NormalizedFlightOffer[];
   durationMs: number;
   error?: ProviderError;
@@ -152,6 +152,7 @@ export type AggregatedSearchResult = {
     cheapestId?: string;
     fastestId?: string;
     bestValueId?: string;
+    bestValueReasons?: string[];
   };
   separateLegsComparison?: {
     roundTripLowest?: number;
