@@ -1,4 +1,3 @@
-import { createHash } from "crypto";
 import type {
   FlightSearchInput,
   FlightSlice,
@@ -50,8 +49,4 @@ export function finalizeOffer(
     observedAt,
     id: makeOfferId(partial.provider, partial.providerOfferId, itineraryHash),
   };
-}
-
-export function fingerprint(parts: string[]): string {
-  return createHash("sha1").update(parts.join("|")).digest("hex").slice(0, 16);
 }
