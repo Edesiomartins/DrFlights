@@ -127,3 +127,20 @@ model ProviderStatus {
   lastError     String?
   updatedAt     DateTime  @updatedAt
 }
+
+model AffiliateClick {
+  id         String   @id @default(cuid())
+  placement  String
+  partner    String?
+  slotId     String?
+  targetUrl  String
+  userAgent  String?
+  referer    String?
+  ipHash     String?
+  createdAt  DateTime @default(now())
+
+  @@index([placement, createdAt])
+  @@index([partner, createdAt])
+  @@index([slotId, createdAt])
+  @@index([createdAt])
+}

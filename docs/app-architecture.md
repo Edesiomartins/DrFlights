@@ -23,6 +23,8 @@ Aplicação monolítica modular para metabusca de passagens, preparada para uma 
 9. Rate limit em memória (instância única).
 10. Middleware Edge usa `auth.config.ts` (sem Prisma/bcrypt no bundle Edge).
 11. Ofertas Kiwi/Skiplagged com self-transfer ou hidden-city são marcadas e exibem aviso na UI.
+12. Anúncios via `ADS_CONFIG_JSON` + componente `AdSpace`; cliques externos passam por `/api/go` e gravam `AffiliateClick`.
+13. Banner de cookies + páginas `/privacidade` e `/afiliados`.
 
 ## Dados mantidos em `data/`
 

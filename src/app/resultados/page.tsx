@@ -1,4 +1,6 @@
+import { AdSpace } from "@/components/ads/ad-space";
 import { ResultsClient } from "@/components/flights/results-client";
+import { getAdSlotsByPlacement } from "@/lib/ads/config";
 
 type Props = {
   searchParams: Promise<{ q?: string }>;
@@ -13,6 +15,8 @@ export default async function ResultadosPage({ searchParams }: Props) {
     payload = null;
   }
 
+  const inlineAds = getAdSlotsByPlacement("results_inline");
+
   return (
     <div className="shell" style={{ padding: "1rem 0 3rem" }}>
       <h1
@@ -25,12 +29,13 @@ export default async function ResultadosPage({ searchParams }: Props) {
       >
         Resultados
       </h1>
+      <AdSpace placement="results_top" style={{ marginBottom: "1rem", color: "var(--ink)" }} />
       {!payload ? (
         <div className="glass" style={{ borderRadius: "1.25rem", padding: "1.5rem" }}>
           Nenhuma busca informada. Volte à página inicial e preencha o formulário.
         </div>
       ) : (
-        <ResultsClient queryPayload={payload} />
+        <ResultsClient queryPayload={payload} inlineAds={inlineAds} />
       )}
     </div>
   );

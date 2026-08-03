@@ -7,6 +7,7 @@ import {
   formatTime,
   stopsLabel,
 } from "@/components/flights/format";
+import { buildGoUrl } from "@/lib/ads/config";
 
 type Props = {
   offer: NormalizedFlightOffer;
@@ -18,6 +19,13 @@ export function OfferCard({ offer, badge }: Props) {
     offer.expiresAt != null && Date.parse(offer.expiresAt) < Date.now();
   const first = offer.slices[0];
   const stopAirports = offer.slices.flatMap((s) => s.stopAirports);
+  const bookingHref = offer.bookingUrl
+    ? buildGoUrl({
+        to: offer.bookingUrl,
+        placement: "results_card",
+        partner: offer.provider,
+      })
+    : undefined;
 
   return (
     <article
@@ -154,12 +162,12 @@ export function OfferCard({ offer, badge }: Props) {
           <button className="btn btn-secondary" disabled>
             Oferta expirada
           </button>
-        ) : offer.bookingUrl ? (
+        ) : bookingHref ? (
           <a
             className="btn btn-primary"
-            href={offer.bookingUrl}
+            href={bookingHref}
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener noreferrer sponsored"
           >
             Continuar no fornecedor
           </a>

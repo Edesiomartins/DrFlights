@@ -1,3 +1,4 @@
+import { AdSpace } from "@/components/ads/ad-space";
 import { SearchForm } from "@/components/search/search-form";
 import { getAppName } from "@/lib/utils/env";
 
@@ -47,9 +48,11 @@ export default function HomePage() {
         <p style={{ margin: 0, maxWidth: "38ch", fontSize: "1.15rem", opacity: 0.9 }}>
           Compare dinheiro e milhas em um só lugar e siga para o fornecedor na hora de comprar.
         </p>
+        <AdSpace placement="home_top" style={{ maxWidth: 920, color: "var(--ink)" }} />
         <div style={{ maxWidth: 920 }}>
           <SearchForm />
         </div>
+        <AdSpace placement="home_bottom" style={{ maxWidth: 920, color: "var(--ink)" }} />
       </section>
     </div>
   );

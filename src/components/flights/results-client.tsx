@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AdSlotCard } from "@/components/ads/ad-slot-card";
 import { OfferCard } from "@/components/flights/offer-card";
+import type { AdSlotConfig } from "@/lib/ads/config";
 import type {
   AggregatedSearchResult,
   NormalizedFlightOffer,
@@ -11,9 +13,10 @@ import { rankOffers } from "@/lib/flights/ranking/value-score";
 
 type Props = {
   queryPayload: unknown;
+  inlineAds?: AdSlotConfig[];
 };
 
-export function ResultsClient({ queryPayload }: Props) {
+export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
   const [data, setData] = useState<AggregatedSearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -223,20 +226,24 @@ export function ResultsClient({ queryPayload }: Props) {
             configure as chaves de API no servidor.
           </div>
         ) : (
-          filtered.map((offer) => (
-            <OfferCard
-              key={offer.id}
-              offer={offer}
-              badge={
-                offer.id === data.highlights.cheapestId
-                  ? "Mais barato"
-                  : offer.id === data.highlights.fastestId
-                    ? "Mais rápido"
-                    : offer.id === data.highlights.bestValueId
-                      ? "Melhor custo-benefício"
-                      : undefined
-              }
-            />
+          filtered.map((offer, index) => (
+            <div key={offer.id} style={{ display: "grid", gap: "1rem" }}>
+              <OfferCard
+                offer={offer}
+                badge={
+                  offer.id === data.highlights.cheapestId
+                    ? "Mais barato"
+                    : offer.id === data.highlights.fastestId
+                      ? "Mais rápido"
+                      : offer.id === data.highlights.bestValueId
+                        ? "Melhor custo-benefício"
+                        : undefined
+                }
+              />
+              {inlineAds.length > 0 && index === 2
+                ? inlineAds.map((slot) => <AdSlotCard key={slot.id} slot={slot} />)
+                : null}
+            </div>
           ))
         )}
       </section>

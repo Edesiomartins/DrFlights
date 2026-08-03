@@ -119,7 +119,17 @@ A home já existe (`src/app/page.tsx`). Fluxo recomendado para customizar marca/
 
 Não é necessário outro repositório nem microsserviço para a página pública.
 
-## Checklist rápido
+## Anúncios (Coolify)
+
+```env
+ADS_ENABLED=true
+ADS_DEMO=false
+ADS_CONFIG_JSON=[{"id":"home-1","placement":"home_top","enabled":true,"title":"Parceiro","description":"Oferta","ctaLabel":"Ver","targetUrl":"https://parceiro.exemplo","partner":"parceiro","sponsored":true}]
+```
+
+Placements: `home_top`, `home_bottom`, `results_top`, `results_inline`, `footer`.
+
+Cliques passam por `/api/go` e gravam na tabela `AffiliateClick`.
 
 - [ ] Postgres healthy
 - [ ] App build OK
