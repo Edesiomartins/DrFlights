@@ -10,14 +10,21 @@ export default function HomePage() {
       <section className="home-hero">
         <div aria-hidden className="home-orb animate-drift" />
         <div className="home-copy">
-          <p className="home-brand">{appName}</p>
+          <span className="home-eyebrow">Sua próxima viagem começa aqui</span>
+          <h1 className="home-brand">{appName}</h1>
           <p className="home-lead">
-            Compare dinheiro e milhas em um só lugar e siga para o fornecedor na hora de comprar.
+            Encontre a melhor forma de voar comparando tarifas em dinheiro e milhas,
+            com clareza para escolher e segurança para decidir.
           </p>
+          <div className="home-benefits" aria-label="Benefícios da busca">
+            <span><i aria-hidden>✓</i> Dinheiro e milhas</span>
+            <span><i aria-hidden>✓</i> Múltiplas fontes</span>
+            <span><i aria-hidden>✓</i> Comparação inteligente</span>
+          </div>
         </div>
         <div className="home-stack">
-          <AdSpace placement="home_top" className="home-ad" />
           <SearchForm />
+          <AdSpace placement="home_top" className="home-ad" />
           <AdSpace placement="home_bottom" className="home-ad" />
         </div>
       </section>
