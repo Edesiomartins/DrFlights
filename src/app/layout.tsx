@@ -37,7 +37,7 @@ export default function RootLayout({
           <SiteHeader />
           <main>{children}</main>
           <footer
-            className="shell"
+            className="shell site-footer"
             style={{
               padding: "2rem 0 3rem",
               color: "rgba(243,235,224,0.72)",

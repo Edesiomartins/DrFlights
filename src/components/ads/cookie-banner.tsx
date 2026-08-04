@@ -36,6 +36,7 @@ export function CookieBanner() {
 
   return (
     <div
+      className="cookie-banner"
       role="dialog"
       aria-live="polite"
       aria-label="Consentimento de cookies"
@@ -72,7 +73,7 @@ export function CookieBanner() {
           .
         </p>
       </div>
-      <div style={{ display: "flex", gap: "0.55rem", flexWrap: "wrap" }}>
+      <div className="cookie-banner-actions">
         <button
           type="button"
           className="btn btn-primary"
