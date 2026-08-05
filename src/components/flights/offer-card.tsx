@@ -13,9 +13,11 @@ type Props = {
   offer: NormalizedFlightOffer;
   badge?: string;
   valueReasons?: string[];
+  priceClassification?: "BAIXO" | "TIPICO" | "ALTO";
+  mileageBonus?: number;
 };
 
-export function OfferCard({ offer, badge, valueReasons }: Props) {
+export function OfferCard({ offer, badge, valueReasons, priceClassification, mileageBonus }: Props) {
   const expired =
     offer.expiresAt != null && Date.parse(offer.expiresAt) < Date.now();
   const first = offer.slices[0];
@@ -30,89 +32,57 @@ export function OfferCard({ offer, badge, valueReasons }: Props) {
 
   return (
     <article
-      className="glass animate-rise offer-card"
+      className={`glass animate-rise offer-card ${expired ? "is-expired" : ""}`}
       data-testid="offer-card"
-      style={{
-        borderRadius: "1.25rem",
-        padding: "1.1rem 1.2rem",
-        opacity: expired ? 0.55 : 1,
-        display: "grid",
-        gap: "0.75rem",
-      }}
     >
-      <div className="offer-card-header" style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-        <div>
-          {badge ? <span className="offer-badge">{badge}</span> : null}
-          <div style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", fontWeight: 700 }}>
-            {offer.airlineName}
-            {offer.airlineCode &&
-            offer.operatingCarriers.some((c) => c !== offer.airlineCode) ? (
-              <span style={{ fontSize: "0.9rem", fontWeight: 500, opacity: 0.7 }}>
-                {" "}
-                · operado por {offer.operatingCarriers.join(", ")}
-              </span>
-            ) : null}
-          </div>
-          <div style={{ fontSize: "0.9rem", opacity: 0.75 }}>
-            Fonte: {offer.provider}
-            {offer.separateTickets ? " · bilhetes separados / self-transfer" : ""}
-          </div>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: "1.35rem", fontWeight: 800, color: "var(--accent-dark)" }}>
-            {offer.priceType === "points"
-              ? formatPrice(offer.taxesAmount, offer.taxesCurrency, offer.pointsAmount, offer.pointsProgram)
-              : formatPrice(offer.totalAmount, offer.currency)}
-          </div>
-          {offer.promotionLabel ? (
-            <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--ok)" }}>
-              {offer.promotionLabel}
-            </div>
-          ) : null}
-        </div>
+      {expired ? <span className="offer-expired-tag">Oferta expirada</span> : null}
+      <div className="offer-badges">
+        {badge ? <span className="offer-badge">{badge}</span> : null}
+        {offer.separateTickets ? <span className="offer-badge offer-badge-warn">Self-transfer</span> : null}
+        {priceClassification ? <span className={`offer-badge price-badge price-badge--${priceClassification.toLowerCase()}`} title="Classificação calculada com percentis dos preços observados nos últimos 90 dias.">{priceClassification === "BAIXO" ? "Preço abaixo do normal para esta rota" : priceClassification === "ALTO" ? "Preço alto" : "Preço típico"}</span> : null}
+        {mileageBonus ? <span className="offer-badge mileage-bonus-badge">Programa com transferência bonificada de até {mileageBonus}%</span> : null}
       </div>
-
-      <div style={{ display: "grid", gap: "0.55rem" }}>
-        {offer.slices.map((slice, idx) => (
-          <div
-            key={`${offer.id}-slice-${idx}`}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr auto 1fr",
-              gap: "0.75rem",
-              alignItems: "center",
-              background: "rgba(16,32,51,0.04)",
-              borderRadius: "0.9rem",
-              padding: "0.75rem",
-            }}
-          >
+      <div className="offer-main-grid">
+        <div className="offer-itinerary-zone">
+          <div className="offer-airline">
+            <span className="offer-airline-mark" aria-hidden>{offer.airlineCode?.slice(0, 2) ?? "✈"}</span>
             <div>
-              <strong>{formatTime(slice.departureAt)}</strong>
-              <div>{slice.origin}</div>
-            </div>
-            <div style={{ textAlign: "center", fontSize: "0.85rem" }}>
-              <div>{formatDuration(slice.durationMinutes)}</div>
-              <div style={{ opacity: 0.7 }}>
-                {stopsLabel(slice.stops, slice.stopAirports)}
-              </div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <strong>{formatTime(slice.arrivalAt)}</strong>
-              <div>{slice.destination}</div>
+              <strong>{offer.airlineName}</strong>
+              <span>Fonte: {offer.provider}</span>
+              {offer.airlineCode && offer.operatingCarriers.some((c) => c !== offer.airlineCode) ? (
+                <small>Operado por {offer.operatingCarriers.join(", ")}</small>
+              ) : null}
             </div>
           </div>
-        ))}
+          <div className="offer-slices">
+            {offer.slices.map((slice, idx) => (
+              <div key={`${offer.id}-slice-${idx}`} className="offer-slice">
+                <div className="offer-endpoint"><strong>{formatTime(slice.departureAt)}</strong><span>{slice.origin}</span></div>
+                <div className="offer-timeline">
+                  <span>{formatDuration(slice.durationMinutes)}</span>
+                  <div><i /><b /><i /></div>
+                  <small>{stopsLabel(slice.stops, slice.stopAirports)}</small>
+                </div>
+                <div className="offer-endpoint offer-endpoint-arrival"><strong>{formatTime(slice.arrivalAt)}</strong><span>{slice.destination}</span></div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <aside className="offer-price-zone">
+          <span className="offer-price-label">Preço por viajante</span>
+          <strong className="offer-price">
+            {offer.priceType === "points" ? formatPrice(offer.taxesAmount, offer.taxesCurrency, offer.pointsAmount, offer.pointsProgram) : formatPrice(offer.totalAmount, offer.currency)}
+          </strong>
+          {offer.pointsProgram ? <span className="offer-program">{offer.pointsProgram}</span> : null}
+          {offer.promotionLabel ? <span className="offer-promotion">{offer.promotionLabel}</span> : null}
+          <div className="offer-card-actions">
+            {expired ? <button className="btn btn-secondary" disabled>Oferta expirada</button> : bookingHref ? (
+              <a className="btn offer-cta" href={bookingHref} target="_blank" rel="noopener noreferrer sponsored" data-testid="offer-booking-link">Ver oferta <span aria-hidden>→</span></a>
+            ) : <span className="offer-no-link">Sem link direto — consulte {offer.provider}{first ? ` para ${first.origin}→${first.destination}` : ""}.</span>}
+          </div>
+        </aside>
       </div>
-
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "0.75rem 1.25rem",
-          fontSize: "0.88rem",
-          opacity: 0.85,
-        }}
-      >
+      <div className="offer-meta">
         <span>Duração total: {formatDuration(offer.totalDurationMinutes)}</span>
         <span>{stopsLabel(offer.totalStops, stopAirports)}</span>
         <span>Cabine: {offer.cabin}</span>
@@ -134,7 +104,7 @@ export function OfferCard({ offer, badge, valueReasons }: Props) {
           </span>
         ) : null}
         {offer.stale ? (
-          <span style={{ color: "var(--warn)", fontWeight: 700 }}>
+          <span className="offer-stale">
             Possivelmente desatualizado — confirme no site da companhia antes de transferir pontos
           </span>
         ) : null}
@@ -144,14 +114,14 @@ export function OfferCard({ offer, badge, valueReasons }: Props) {
       </div>
 
       {offer.separateTickets ? (
-          <div style={{ fontSize: "0.85rem", color: "var(--warn)", fontWeight: 700 }}>
+          <div className="offer-warning">
             Atenção: pode envolver bilhetes separados ou hidden-city. Confirme bagagem,
             conexão e regras no site do fornecedor antes de comprar.
           </div>
         ) : null}
 
       {offer.promotionMeta && offer.promotionMeta.sampleCount >= 5 ? (
-        <div style={{ fontSize: "0.85rem", opacity: 0.8 }}>
+        <div className="offer-history">
           Mediana histórica ({offer.promotionMeta.periodDays}d, {offer.promotionMeta.sampleCount} amostras):{" "}
           {offer.promotionMeta.medianPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           {" · "}
@@ -170,28 +140,6 @@ export function OfferCard({ offer, badge, valueReasons }: Props) {
         </div>
       ) : null}
 
-      <div className="offer-card-actions">
-        {expired ? (
-          <button className="btn btn-secondary" disabled>
-            Oferta expirada
-          </button>
-        ) : bookingHref ? (
-          <a
-            className="btn btn-primary"
-            href={bookingHref}
-            target="_blank"
-            rel="noopener noreferrer sponsored"
-            data-testid="offer-booking-link"
-          >
-            Continuar no fornecedor
-          </a>
-        ) : (
-          <span style={{ fontSize: "0.9rem", opacity: 0.75 }}>
-            Sem link direto — use a fonte {offer.provider} com estes horários.
-            {first ? ` ${first.origin}→${first.destination}` : ""}
-          </span>
-        )}
-      </div>
     </article>
   );
 }

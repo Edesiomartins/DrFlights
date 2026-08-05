@@ -5,9 +5,9 @@ export default function PrivacidadePage() {
   const appName = getAppName();
 
   return (
-    <div className="shell" style={{ padding: "1.5rem 0 3rem", color: "var(--sand)" }}>
-      <article className="glass" style={{ borderRadius: "1.25rem", padding: "1.5rem", color: "var(--ink)" }}>
-        <h1 style={{ fontFamily: "var(--font-display)", marginTop: 0 }}>Política de Privacidade</h1>
+    <div className="shell page-shell legal-page">
+      <article className="glass content-card legal-card">
+        <h1>Política de Privacidade</h1>
         <p>
           O {appName} é um metabuscador de passagens. Não emitimos bilhetes e não processamos
           pagamentos de cartão nesta versão.
@@ -40,7 +40,7 @@ export default function PrivacidadePage() {
           configurado no serviço. Alertas e pesquisas vinculadas serão removidos com a conta.
         </p>
 
-        <p style={{ fontSize: "0.9rem", opacity: 0.75 }}>
+        <p className="legal-related">
           Veja também a <Link href="/afiliados">Política de Afiliados</Link>.
         </p>
       </article>

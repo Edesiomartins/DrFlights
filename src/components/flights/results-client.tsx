@@ -36,6 +36,13 @@ function providerStatusLabel(status: string): string {
   }
 }
 
+function PriceSparkline({ points }: { points: Array<{ week: string; median: number }> }) {
+  if (points.length < 2) return null;
+  const values=points.map((p)=>p.median);const min=Math.min(...values);const max=Math.max(...values);const range=max-min||1;
+  const coords=values.map((value,index)=>`${(index/(values.length-1))*240},${56-((value-min)/range)*48}`).join(" ");
+  return <div className="price-trend"><div><strong>Tendência de preço</strong><span>Mediana semanal · últimos 90 dias</span></div><svg viewBox="0 0 240 64" role="img" aria-label="Evolução da mediana semanal"><polyline points={coords} /></svg></div>;
+}
+
 export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
   const [data, setData] = useState<AggregatedSearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -116,11 +123,11 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
 
   if (error) {
     return (
-      <div className="glass results-feedback" style={{ borderRadius: "1.25rem", padding: "1.5rem" }}>
-        <h2 style={{ marginTop: 0, fontFamily: "var(--font-display)", color: "var(--danger)" }}>
+      <div className="glass results-feedback">
+        <h2 className="results-error-title">
           Não foi possível concluir a busca
         </h2>
-        <p style={{ marginTop: 0 }}>{error}</p>
+        <p>{error}</p>
         <button
           type="button"
           className="btn btn-primary"
@@ -161,7 +168,7 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
     );
 
   return (
-    <div className="results-layout" style={{ display: "grid", gap: "1.25rem" }}>
+    <div className="results-layout">
       {partialSources ? (
         <div className="glass results-banner warn" role="status">
           Algumas fontes não responderam a tempo. Exibindo resultados parciais
@@ -169,7 +176,6 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
           <button
             type="button"
             className="btn btn-secondary"
-            style={{ marginLeft: "0.75rem" }}
             onClick={() => setRetryToken((n) => n + 1)}
           >
             Buscar de novo
@@ -177,9 +183,9 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
         </div>
       ) : null}
 
-      <section className="glass results-panel" style={{ borderRadius: "1.25rem", padding: "1.25rem" }}>
+      <section className="glass results-panel">
         <div className="results-panel-header">
-          <h2 style={{ marginTop: 0, fontFamily: "var(--font-display)" }}>
+          <h2>
             {filtered.length} oferta(s) · {data.cached ? "cache" : "ao vivo"}
           </h2>
           <button
@@ -200,6 +206,7 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
             self-transfer
           </span>
         </div>
+        {data.priceIntel?.weekly?.length ? <PriceSparkline points={data.priceIntel.weekly} /> : null}
 
         {data.highlights.bestValueReasons?.length ? (
           <div className="results-value-why" role="note">
@@ -237,7 +244,7 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
         </div>
 
         {data.separateLegsComparison ? (
-          <p className="results-banner warn" style={{ marginTop: "1rem" }}>
+          <p className="results-banner warn results-comparison">
             Ida/volta menor: {data.separateLegsComparison.roundTripLowest ?? "—"} ·
             Trechos separados menor:{" "}
             {data.separateLegsComparison.separateLowest ?? "—"}
@@ -247,19 +254,19 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
         ) : null}
 
         {expiredCount > 0 ? (
-          <p style={{ color: "var(--warn)" }}>
+          <p className="text-warn">
             {expiredCount} oferta(s) expirada(s) não podem ser compradas.
           </p>
         ) : null}
 
-        <div
+      </section>
+
+      <div className="results-content-grid">
+        <aside className="results-sidebar" aria-label="Filtros da busca">
+          <div
           className={`results-filters ${filtersOpen ? "is-open" : ""}`}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-            gap: "0.75rem",
-          }}
         >
+          <strong className="results-filters-title">Filtrar resultados</strong>
           <div className="field">
             <label htmlFor="sort">Ordenar</label>
             <select
@@ -337,13 +344,13 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
             />
             Com bagagem informada
           </label>
-        </div>
-      </section>
+          </div>
+        </aside>
 
-      <section style={{ display: "grid", gap: "1rem" }}>
+      <section className="results-list">
         {allFailed ? (
-          <div className="glass results-feedback" style={{ borderRadius: "1.25rem", padding: "1.5rem" }}>
-            <h3 style={{ marginTop: 0, fontFamily: "var(--font-display)" }}>
+          <div className="glass results-feedback">
+            <h3>
               Nenhuma fonte disponível
             </h3>
             <p>
@@ -359,8 +366,8 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
             </button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="glass results-feedback" style={{ borderRadius: "1.25rem", padding: "1.5rem" }}>
-            <h3 style={{ marginTop: 0, fontFamily: "var(--font-display)" }}>
+          <div className="glass results-feedback">
+            <h3>
               Nenhuma oferta encontrada
             </h3>
             <p>
@@ -395,7 +402,7 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
           </div>
         ) : (
           filtered.map((offer, index) => (
-            <div key={offer.id} style={{ display: "grid", gap: "1rem" }}>
+            <div key={offer.id} className="results-offer-group">
               <OfferCard
                 offer={offer}
                 badge={
@@ -412,6 +419,8 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
                     ? data.highlights.bestValueReasons
                     : undefined
                 }
+                priceClassification={data.priceIntel?.classifications[offer.id]}
+                mileageBonus={offer.pointsProgram ? data.mileageBonuses?.[offer.pointsProgram] : undefined}
               />
               {inlineAds.length > 0 && index === 2
                 ? inlineAds.map((slot) => <AdSlotCard key={slot.id} slot={slot} />)
@@ -420,6 +429,7 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
           ))
         )}
       </section>
+      </div>
     </div>
   );
 }

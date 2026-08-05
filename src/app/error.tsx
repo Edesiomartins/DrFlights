@@ -24,24 +24,15 @@ export default function ErrorPage({ error, reset }: Props) {
   }, [error]);
 
   return (
-    <div className="shell" style={{ padding: "2.5rem 0" }}>
-      <div
-        className="glass"
-        style={{
-          borderRadius: "1.25rem",
-          padding: "1.75rem",
-          maxWidth: 560,
-          display: "grid",
-          gap: "1rem",
-        }}
-      >
-        <h1 style={{ margin: 0, fontFamily: "var(--font-display)" }}>
+    <div className="shell state-page">
+      <div className="glass state-card">
+        <h1>
           Algo deu errado
         </h1>
-        <p style={{ margin: 0, opacity: 0.8 }}>
+        <p>
           Não foi possível carregar esta página. Você pode tentar novamente.
         </p>
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+        <div className="state-actions">
           <button type="button" className="btn btn-primary" onClick={reset}>
             Tentar novamente
           </button>

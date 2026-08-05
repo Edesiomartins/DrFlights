@@ -2,8 +2,8 @@ import { AdminPanel } from "@/components/admin/admin-panel";
 
 export default function AdminPage() {
   return (
-    <div className="shell" style={{ padding: "1.5rem 0 3rem" }}>
-      <h1 style={{ color: "var(--sand)", fontFamily: "var(--font-display)" }}>
+    <div className="shell page-shell">
+      <h1 className="page-title">
         Administração
       </h1>
       <AdminPanel />

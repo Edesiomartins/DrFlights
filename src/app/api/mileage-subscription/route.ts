@@ -1,0 +1,2 @@
+import { NextResponse } from "next/server";import { auth } from "@/lib/auth/config";import { prisma } from "@/lib/db/prisma";
+export async function POST(request:Request){const session=await auth();if(!session?.user?.id)return NextResponse.json({error:"Faça login."},{status:401});const body=await request.json() as {active?:boolean};const subscription=await prisma.mileagePromoSubscription.upsert({where:{userId:session.user.id},update:{active:body.active!==false},create:{userId:session.user.id,active:body.active!==false}});return NextResponse.json({subscription});}

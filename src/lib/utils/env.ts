@@ -20,6 +20,20 @@ export function getDuffelApiKey(): string | undefined {
   return read("DUFFEL_API_KEY") ?? read("DUFFEL_API_KEY_LIVE");
 }
 
+export function getTravelpayoutsToken(): string | undefined { return read("TRAVELPAYOUTS_TOKEN"); }
+export function getTravelpayoutsMarker(): string | undefined { return read("TRAVELPAYOUTS_MARKER"); }
+export function getAmadeusClientId(): string | undefined { return read("AMADEUS_CLIENT_ID"); }
+export function getAmadeusClientSecret(): string | undefined { return read("AMADEUS_CLIENT_SECRET"); }
+export function getAmadeusBaseUrl(): string { return read("AMADEUS_BASE_URL") ?? "https://test.api.amadeus.com"; }
+export function getDealMadK(): number {
+  const raw = Number(read("DEAL_MAD_K") ?? "2.5");
+  return Number.isFinite(raw) && raw > 0 ? raw : 2.5;
+}
+export function getPriceIntelMinSamples(): number {
+  const raw = Number(read("PRICE_INTEL_MIN_SAMPLES") ?? "20");
+  return Number.isFinite(raw) && raw >= 3 ? Math.floor(raw) : 20;
+}
+
 export function getProviderTimeoutMs(): number {
   const raw = Number(read("PROVIDER_TIMEOUT_MS") ?? "20000");
   return Number.isFinite(raw) && raw > 0 ? raw : 20000;

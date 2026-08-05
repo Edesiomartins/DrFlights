@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Fraunces, Manrope } from "next/font/google";
 import { AdSpace } from "@/components/ads/ad-space";
 import { CookieBanner } from "@/components/ads/cookie-banner";
@@ -36,37 +37,36 @@ export default function RootLayout({
         <Providers>
           <SiteHeader />
           <main>{children}</main>
-          <footer
-            className="shell site-footer"
-            style={{
-              padding: "2rem 0 3rem",
-              color: "rgba(243,235,224,0.72)",
-              fontSize: "0.85rem",
-              display: "grid",
-              gap: "1rem",
-            }}
-          >
-            <AdSpace placement="footer" />
-            <p>
-              Dados de aeroportos derivados de OpenFlights (
-              <a
-                href="https://openflights.org/data.php"
-                style={{ textDecoration: "underline" }}
-              >
-                openflights.org
-              </a>
-              ), licença ODbL. Este produto redireciona para o fornecedor para a compra —
-              não emite bilhetes. Conteúdo patrocinado é identificado como{" "}
-              <strong>Patrocinado</strong>.
-            </p>
-            <p style={{ margin: 0, display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-              <a href="/privacidade" style={{ textDecoration: "underline" }}>
-                Privacidade
-              </a>
-              <a href="/afiliados" style={{ textDecoration: "underline" }}>
-                Afiliados
-              </a>
-            </p>
+          <footer className="site-footer">
+            <div className="shell site-footer-inner">
+              <div className="site-footer-brand">
+                <strong>{getAppName()}</strong>
+                <p>Compare tarifas em dinheiro e milhas para viajar com mais clareza.</p>
+              </div>
+              <div className="site-footer-column">
+                <strong>Produto</strong>
+                <Link href="/">Buscar voos</Link>
+                <Link href="/alertas">Alertas de preço</Link>
+                <Link href="/historico">Histórico</Link>
+              </div>
+              <div className="site-footer-column">
+                <strong>Legal</strong>
+                <Link href="/privacidade">Privacidade</Link>
+                <Link href="/afiliados">Afiliados</Link>
+              </div>
+              <div className="site-footer-column">
+                <strong>Fontes de dados</strong>
+                <p>
+                  Aeroportos derivados de{" "}
+                  <a href="https://openflights.org/data.php">OpenFlights</a>, licença ODbL.
+                </p>
+              </div>
+              <div className="site-footer-ad"><AdSpace placement="footer" /></div>
+              <p className="site-footer-disclaimer">
+                Redirecionamos ao fornecedor para concluir a compra; não emitimos bilhetes.
+                Conteúdo comercial é identificado como <strong>Patrocinado</strong>.
+              </p>
+            </div>
           </footer>
           <CookieBanner />
         </Providers>

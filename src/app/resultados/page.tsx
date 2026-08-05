@@ -18,20 +18,13 @@ export default async function ResultadosPage({ searchParams }: Props) {
   const inlineAds = getAdSlotsByPlacement("results_inline");
 
   return (
-    <div className="shell" style={{ padding: "1rem 0 3rem" }}>
-      <h1
-        style={{
-          color: "var(--sand)",
-          fontFamily: "var(--font-display)",
-          fontSize: "2rem",
-          marginBottom: "1rem",
-        }}
-      >
+    <div className="shell page-shell results-page">
+      <h1 className="page-title">
         Resultados
       </h1>
-      <AdSpace placement="results_top" style={{ marginBottom: "1rem", color: "var(--ink)" }} />
+      <AdSpace placement="results_top" className="results-top-ad" />
       {!payload ? (
-        <div className="glass" style={{ borderRadius: "1.25rem", padding: "1.5rem" }}>
+        <div className="glass results-feedback">
           Nenhuma busca informada. Volte à página inicial e preencha o formulário.
         </div>
       ) : (

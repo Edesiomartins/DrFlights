@@ -19,26 +19,14 @@ type Stats = {
   topRoutes: Array<{ route: string; count: number }>;
 };
 
-const TONE_STYLE: Record<
-  ProviderStatusTone,
-  { color: string; background: string }
-> = {
-  neutral: {
-    color: "rgba(16,32,51,0.72)",
-    background: "rgba(16,32,51,0.08)",
-  },
-  ok: {
-    color: "var(--ok)",
-    background: "rgba(31,138,91,0.12)",
-  },
-  danger: {
-    color: "var(--danger)",
-    background: "rgba(179,58,58,0.12)",
-  },
-  warn: {
-    color: "var(--warn)",
-    background: "rgba(201,133,26,0.14)",
-  },
+type MileagePromo = {
+  id: string;
+  sourceProgram: string;
+  destinationProgram: string;
+  bonusPercent: number;
+  validUntil: string;
+  officialUrl: string;
+  status: "ACTIVE" | "INACTIVE" | "EXPIRED";
 };
 
 function StatusBadge({
@@ -48,29 +36,15 @@ function StatusBadge({
   label: string;
   tone: ProviderStatusTone;
 }) {
-  const style = TONE_STYLE[tone];
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "0.25rem 0.65rem",
-        borderRadius: 999,
-        fontSize: "0.82rem",
-        fontWeight: 700,
-        color: style.color,
-        background: style.background,
-      }}
-    >
-      {label}
-    </span>
-  );
+  return <span className={`status-badge status-badge--${tone}`}>{label}</span>;
 }
 
 export function AdminPanel() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [healthMsg, setHealthMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [promos, setPromos] = useState<MileagePromo[]>([]);
+  const [promoMessage, setPromoMessage] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch("/api/admin/stats");
@@ -79,6 +53,8 @@ export function AdminPanel() {
       return;
     }
     setStats((await res.json()) as Stats);
+    const promoRes = await fetch("/api/admin/mileage-promos");
+    if (promoRes.ok) setPromos(((await promoRes.json()) as { promos: MileagePromo[] }).promos);
   }
 
   useEffect(() => {
@@ -105,6 +81,32 @@ export function AdminPanel() {
     await load();
   }
 
+  async function createPromo(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPromoMessage("Salvando promoção…");
+    const form = new FormData(event.currentTarget);
+    const res = await fetch("/api/admin/mileage-promos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sourceProgram: form.get("sourceProgram"),
+        destinationProgram: form.get("destinationProgram"),
+        bonusPercent: Number(form.get("bonusPercent")),
+        validUntil: form.get("validUntil"),
+        officialUrl: form.get("officialUrl"),
+      }),
+    });
+    if (!res.ok) { setPromoMessage("Não foi possível salvar. Revise os campos."); return; }
+    event.currentTarget.reset();
+    setPromoMessage("Promoção publicada e assinantes processados.");
+    await load();
+  }
+
+  async function setPromoStatus(id: string, status: MileagePromo["status"]) {
+    const res = await fetch(`/api/admin/mileage-promos/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    if (res.ok) { setPromoMessage("Status atualizado."); await load(); }
+  }
+
   const summary = useMemo(
     () => (stats ? summarizeProviderStatuses(stats.providers) : null),
     [stats],
@@ -112,7 +114,7 @@ export function AdminPanel() {
 
   if (error) {
     return (
-      <div className="glass" style={{ padding: "1.25rem", borderRadius: "1rem" }}>
+      <div className="glass content-card">
         {error}
       </div>
     );
@@ -120,106 +122,82 @@ export function AdminPanel() {
 
   if (!stats || !summary) {
     return (
-      <div className="glass" style={{ padding: "1.25rem", borderRadius: "1rem" }}>
+      <div className="glass content-card">
         Carregando…
       </div>
     );
   }
 
   return (
-    <div style={{ display: "grid", gap: "1.25rem" }}>
-      <section
-        className="glass"
-        style={{
-          borderRadius: "1.25rem",
-          padding: "1.25rem",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-          gap: "1rem",
-        }}
-      >
+    <div className="admin-layout">
+      <section className="glass admin-stats">
         <div>
-          <div style={{ opacity: 0.7 }}>Usuários</div>
-          <strong style={{ fontSize: "1.6rem" }}>{stats.users}</strong>
+          <div className="admin-stat-label">Usuários</div>
+          <strong className="admin-stat-value">{stats.users}</strong>
         </div>
         <div>
-          <div style={{ opacity: 0.7 }}>Pesquisas</div>
-          <strong style={{ fontSize: "1.6rem" }}>{stats.searches}</strong>
+          <div className="admin-stat-label">Pesquisas</div>
+          <strong className="admin-stat-value">{stats.searches}</strong>
         </div>
         <div>
-          <div style={{ opacity: 0.7 }}>Alertas ativos</div>
-          <strong style={{ fontSize: "1.6rem" }}>{stats.activeAlerts}</strong>
+          <div className="admin-stat-label">Alertas ativos</div>
+          <strong className="admin-stat-value">{stats.activeAlerts}</strong>
         </div>
       </section>
 
-      <section className="glass" style={{ borderRadius: "1.25rem", padding: "1.25rem" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: "1rem",
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <h2 style={{ margin: 0 }}>Providers</h2>
+      <section className="glass content-card">
+        <div className="admin-section-head">
+          <h2>Providers</h2>
           <button className="btn btn-primary" type="button" onClick={() => void runHealth()}>
             Executar healthcheck
           </button>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-            gap: "0.75rem",
-            marginTop: "1rem",
-          }}
-        >
+        <div className="admin-health-summary">
           <div>
-            <div style={{ opacity: 0.7, fontSize: "0.85rem" }}>Operacionais</div>
-            <strong style={{ color: "var(--ok)", fontSize: "1.35rem" }}>
+            <div className="admin-stat-label">Operacionais</div>
+            <strong className="admin-health-value text-ok">
               {summary.operational}
             </strong>
           </div>
           <div>
-            <div style={{ opacity: 0.7, fontSize: "0.85rem" }}>Não configurados</div>
-            <strong style={{ color: "rgba(16,32,51,0.65)", fontSize: "1.35rem" }}>
+            <div className="admin-stat-label">Não configurados</div>
+            <strong className="admin-health-value text-muted">
               {summary.unconfigured}
             </strong>
           </div>
           <div>
-            <div style={{ opacity: 0.7, fontSize: "0.85rem" }}>Com falha</div>
-            <strong style={{ color: "var(--danger)", fontSize: "1.35rem" }}>
+            <div className="admin-stat-label">Com falha</div>
+            <strong className="admin-health-value text-danger">
               {summary.failed}
             </strong>
           </div>
           <div>
-            <div style={{ opacity: 0.7, fontSize: "0.85rem" }}>Pausados</div>
-            <strong style={{ color: "var(--warn)", fontSize: "1.35rem" }}>
+            <div className="admin-stat-label">Pausados</div>
+            <strong className="admin-health-value text-warn">
               {summary.paused}
             </strong>
           </div>
         </div>
 
         {healthMsg ? (
-          <p style={{ fontSize: "0.9rem", marginTop: "1rem" }}>{healthMsg}</p>
+          <p className="admin-health-message">{healthMsg}</p>
         ) : null}
 
-        <div style={{ overflowX: "auto", marginTop: "0.75rem" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
+        <div className="table-scroll admin-table-wrap">
+          <table className="data-table admin-table">
             <thead>
               <tr>
-                <th align="left" style={{ padding: "0.45rem 0.35rem" }}>
+                <th align="left">
                   Provider
                 </th>
-                <th align="left" style={{ padding: "0.45rem 0.35rem" }}>
+                <th align="left">
                   Status
                 </th>
-                <th align="left" style={{ padding: "0.45rem 0.35rem" }}>
+                <th align="left">
                   Latência
                 </th>
-                <th align="left" style={{ padding: "0.45rem 0.35rem" }}>
+                <th align="left">
                   Detalhe
                 </th>
               </tr>
@@ -239,34 +217,21 @@ export function AdminPanel() {
                       : null;
 
                 return (
-                  <tr key={p.provider} style={{ borderTop: "1px solid rgba(16,32,51,0.08)" }}>
-                    <td style={{ padding: "0.7rem 0.35rem", fontWeight: 600 }}>
+                  <tr key={p.provider}>
+                    <td className="admin-provider-name">
                       {p.provider}
                     </td>
-                    <td style={{ padding: "0.7rem 0.35rem" }}>
+                    <td>
                       <StatusBadge label={view.label} tone={view.tone} />
                     </td>
-                    <td style={{ padding: "0.7rem 0.35rem" }}>
+                    <td>
                       {view.category === "unconfigured"
                         ? "—"
                         : p.lastLatencyMs != null
                           ? `${p.lastLatencyMs}ms`
                           : "—"}
                     </td>
-                    <td
-                      style={{
-                        padding: "0.7rem 0.35rem",
-                        maxWidth: 360,
-                        wordBreak: "break-word",
-                        fontSize: "0.9rem",
-                        color:
-                          view.category === "failed"
-                            ? "var(--danger)"
-                            : view.category === "paused"
-                              ? "var(--warn)"
-                              : "rgba(16,32,51,0.7)",
-                      }}
-                    >
+                    <td className={`admin-provider-detail admin-provider-detail--${view.category}`}>
                       {view.category === "paused" ? (
                         <>
                           {showError ? <div>{showError}</div> : null}
@@ -281,7 +246,7 @@ export function AdminPanel() {
                         <>
                           {showError ?? "Falha sem detalhe"}
                           {p.lastLatencyMs != null ? (
-                            <div style={{ opacity: 0.75 }}>
+                            <div className="text-muted">
                               Latência do health: {p.lastLatencyMs}ms
                             </div>
                           ) : null}
@@ -302,8 +267,8 @@ export function AdminPanel() {
         </div>
       </section>
 
-      <section className="glass" style={{ borderRadius: "1.25rem", padding: "1.25rem" }}>
-        <h2 style={{ marginTop: 0 }}>Rotas mais pesquisadas (amostra recente)</h2>
+      <section className="glass content-card">
+        <h2>Rotas mais pesquisadas (amostra recente)</h2>
         {stats.topRoutes.length === 0 ? (
           <p>Sem dados ainda.</p>
         ) : (
@@ -315,6 +280,27 @@ export function AdminPanel() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="glass content-card">
+        <div className="admin-section-head"><div><span className="section-kicker">Milhas</span><h2>Transferências bonificadas</h2></div></div>
+        <form className="admin-promo-form" onSubmit={(event) => void createPromo(event)}>
+          <label>Programa de origem<input name="sourceProgram" required placeholder="Ex.: Livelo" /></label>
+          <label>Programa de destino<input name="destinationProgram" required placeholder="Ex.: Smiles" /></label>
+          <label>Bônus (%)<input name="bonusPercent" required type="number" min="1" max="300" /></label>
+          <label>Válida até<input name="validUntil" required type="datetime-local" /></label>
+          <label className="admin-promo-url">Link oficial<input name="officialUrl" required type="url" placeholder="https://…" /></label>
+          <button className="btn btn-primary" type="submit">Publicar promoção</button>
+        </form>
+        {promoMessage ? <p className="admin-health-message" role="status">{promoMessage}</p> : null}
+        <div className="admin-promo-list">
+          {promos.map((promo) => <article key={promo.id} className="admin-promo-row">
+            <div><strong>{promo.sourceProgram} → {promo.destinationProgram}</strong><span>{promo.bonusPercent}% · até {new Date(promo.validUntil).toLocaleString("pt-BR")}</span></div>
+            <StatusBadge label={promo.status === "ACTIVE" ? "Ativa" : promo.status === "EXPIRED" ? "Expirada" : "Inativa"} tone={promo.status === "ACTIVE" ? "ok" : "neutral"} />
+            <button className="btn btn-secondary" type="button" onClick={() => void setPromoStatus(promo.id, promo.status === "ACTIVE" ? "INACTIVE" : "ACTIVE")}>{promo.status === "ACTIVE" ? "Desativar" : "Ativar"}</button>
+          </article>)}
+          {promos.length === 0 ? <p className="text-muted">Nenhuma promoção cadastrada.</p> : null}
+        </div>
       </section>
     </div>
   );

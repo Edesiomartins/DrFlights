@@ -70,24 +70,30 @@ export async function runPriceAlerts(): Promise<CronAlertsResult> {
       const best = cashOffers.sort(
         (a, b) => (a.totalAmount ?? Infinity) - (b.totalAmount ?? Infinity),
       )[0];
+      const matchingDeal = await prisma.deal.findFirst({
+        where: { status: { in: ["NEW", "VERIFIED"] }, origin: alert.origin, destination: alert.destination, price: { not: null }, publishedAt: { gte: new Date(Date.now() - 14 * 86400000) } },
+        orderBy: { price: "asc" },
+      });
+      const effectivePrice = matchingDeal?.price != null && matchingDeal.price < (best?.totalAmount ?? Infinity) ? matchingDeal.price : best?.totalAmount;
+      const effectiveProvider = matchingDeal?.price === effectivePrice ? "deal-radar" : best?.provider;
 
       await prisma.priceAlert.update({
         where: { id: alert.id },
         data: {
           lastCheckedAt: new Date(),
-          lastMatchedPrice: best?.totalAmount ?? alert.lastMatchedPrice,
+          lastMatchedPrice: effectivePrice ?? alert.lastMatchedPrice,
         },
       });
 
-      if (!best?.totalAmount || alert.maxPrice == null) continue;
-      if (best.totalAmount > alert.maxPrice) continue;
+      if (!effectivePrice || alert.maxPrice == null) continue;
+      if (effectivePrice > alert.maxPrice) continue;
 
       const lastNotified = alert.lastNotifiedAt?.getTime() ?? 0;
       const hoursSince =
         (Date.now() - lastNotified) / (1000 * 60 * 60);
       const additionalDrop =
         alert.lastMatchedPrice != null &&
-        best.totalAmount <
+        effectivePrice <
           alert.lastMatchedPrice * (1 - RELEVANT_DROP_PERCENT / 100);
 
       if (hoursSince < MIN_NOTIFY_HOURS && !additionalDrop && lastNotified > 0) {
@@ -101,8 +107,8 @@ export async function runPriceAlerts(): Promise<CronAlertsResult> {
             channel: "email",
             recipient: alert.user.email,
             status: "skipped",
-            price: best.totalAmount,
-            provider: best.provider,
+            price: effectivePrice,
+            provider: effectiveProvider,
             error: "SMTP não configurado",
           },
         });
@@ -111,11 +117,11 @@ export async function runPriceAlerts(): Promise<CronAlertsResult> {
 
       const subject = `Alerta de preço: ${alert.origin} → ${alert.destination}`;
       const text = [
-        `Encontramos um preço de ${best.currency ?? alert.currency} ${best.totalAmount.toFixed(2)}`,
+        `Encontramos um preço de ${best?.currency ?? alert.currency} ${effectivePrice.toFixed(2)}`,
         `na rota ${alert.origin} → ${alert.destination}.`,
         `Seu limite: ${alert.currency} ${alert.maxPrice}.`,
-        `Fonte: ${best.provider}.`,
-        best.bookingUrl ? `Continuar: ${best.bookingUrl}` : "",
+        `Fonte: ${effectiveProvider}.`,
+        matchingDeal?.originalUrl ? `Continuar: ${matchingDeal.originalUrl}` : best?.bookingUrl ? `Continuar: ${best.bookingUrl}` : "",
         "",
         "Confirme sempre no site do fornecedor antes de comprar.",
       ]
@@ -134,8 +140,8 @@ export async function runPriceAlerts(): Promise<CronAlertsResult> {
           channel: "email",
           recipient: alert.user.email,
           status: emailResult.ok ? "sent" : "error",
-          price: best.totalAmount,
-          provider: best.provider,
+          price: effectivePrice,
+          provider: effectiveProvider,
           messageId: emailResult.messageId,
           error: emailResult.error,
         },

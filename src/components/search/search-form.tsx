@@ -20,6 +20,7 @@ export function SearchForm() {
   const [cabin, setCabin] = useState("economy");
   const [maxStops, setMaxStops] = useState<string>("");
   const [compareSeparate, setCompareSeparate] = useState(false);
+  const [passengersOpen, setPassengersOpen] = useState(false);
   const [extraSlices, setExtraSlices] = useState<
     Array<{ origin: string; destination: string; departureDate: string }>
   >([]);
@@ -100,6 +101,17 @@ export function SearchForm() {
       <div className="search-rows">
         <div className="search-row search-row--route">
           <AirportInput id="origin" label="Origem" value={origin} onChange={setOrigin} />
+          <button
+            type="button"
+            className="route-swap"
+            aria-label="Inverter origem e destino"
+            onClick={() => {
+              setOrigin(destination);
+              setDestination(origin);
+            }}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden><path d="m7 7 3-3m-3 3 3 3M7 7h10M17 17l-3-3m3 3-3 3m3-3H7" /></svg>
+          </button>
           <AirportInput
             id="destination"
             label="Destino"
@@ -135,58 +147,27 @@ export function SearchForm() {
           ) : null}
         </div>
 
-        <div className="search-row search-row--pax">
-          <div className="field">
-            <label htmlFor="adults">Adultos</label>
-            <input
-              id="adults"
-              type="number"
-              min={1}
-              max={9}
-              value={adults}
-              onChange={(e) => setAdults(Number(e.target.value))}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="children">Crianças</label>
-            <input
-              id="children"
-              type="number"
-              min={0}
-              max={8}
-              value={children}
-              onChange={(e) => setChildren(Number(e.target.value))}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="infants">Bebês</label>
-            <input
-              id="infants"
-              type="number"
-              min={0}
-              max={4}
-              value={infants}
-              onChange={(e) => setInfants(Number(e.target.value))}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="cabin">Cabine</label>
-            <select id="cabin" value={cabin} onChange={(e) => setCabin(e.target.value)}>
-              <option value="economy">Econômica</option>
-              <option value="premium_economy">Econômica premium</option>
-              <option value="business">Executiva</option>
-              <option value="first">Primeira</option>
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="stops">Máx. escalas</label>
-            <select id="stops" value={maxStops} onChange={(e) => setMaxStops(e.target.value)}>
-              <option value="">Qualquer</option>
-              <option value="0">Direto</option>
-              <option value="1">Até 1</option>
-              <option value="2">Até 2</option>
-            </select>
-          </div>
+        <div className="passengers-control">
+          <span className="field-label">Viajantes e cabine</span>
+          <button type="button" className="passengers-trigger" aria-expanded={passengersOpen} onClick={() => setPassengersOpen((value) => !value)}>
+            <svg viewBox="0 0 24 24" aria-hidden><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+            <span>{adults} {adults === 1 ? "adulto" : "adultos"}{children ? `, ${children} criança${children > 1 ? "s" : ""}` : ""}{infants ? `, ${infants} bebê${infants > 1 ? "s" : ""}` : ""} · {cabin === "economy" ? "Econômica" : cabin === "premium_economy" ? "Econômica premium" : cabin === "business" ? "Executiva" : "Primeira"}</span>
+            <span aria-hidden>⌄</span>
+          </button>
+          {passengersOpen ? (
+            <div className="passengers-popover">
+              <div className="passenger-fields">
+                <div className="field"><label htmlFor="adults">Adultos</label><input id="adults" type="number" min={1} max={9} value={adults} onChange={(e) => setAdults(Number(e.target.value))} /></div>
+                <div className="field"><label htmlFor="children">Crianças</label><input id="children" type="number" min={0} max={8} value={children} onChange={(e) => setChildren(Number(e.target.value))} /></div>
+                <div className="field"><label htmlFor="infants">Bebês</label><input id="infants" type="number" min={0} max={4} value={infants} onChange={(e) => setInfants(Number(e.target.value))} /></div>
+              </div>
+              <div className="passenger-options">
+                <div className="field"><label htmlFor="cabin">Cabine</label><select id="cabin" value={cabin} onChange={(e) => setCabin(e.target.value)}><option value="economy">Econômica</option><option value="premium_economy">Econômica premium</option><option value="business">Executiva</option><option value="first">Primeira</option></select></div>
+                <div className="field"><label htmlFor="stops">Máx. escalas</label><select id="stops" value={maxStops} onChange={(e) => setMaxStops(e.target.value)}><option value="">Qualquer</option><option value="0">Direto</option><option value="1">Até 1</option><option value="2">Até 2</option></select></div>
+              </div>
+              <button type="button" className="btn btn-secondary passengers-done" onClick={() => setPassengersOpen(false)}>Concluir</button>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -252,6 +233,7 @@ export function SearchForm() {
             checked={compareSeparate}
             onChange={(e) => setCompareSeparate(e.target.checked)}
           />
+          <span className="toggle-track" aria-hidden><span /></span>
           Comparar com trechos separados
         </label>
       ) : null}
@@ -265,7 +247,8 @@ export function SearchForm() {
           disabled={pending}
           data-testid="search-submit"
         >
-          {pending ? "Preparando busca…" : "Buscar passagens"}
+          <svg viewBox="0 0 24 24" aria-hidden><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+          {pending ? "Preparando busca…" : "Buscar voos"}
         </button>
       </div>
     </form>

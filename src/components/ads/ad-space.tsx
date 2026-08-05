@@ -7,15 +7,14 @@ import {
 type Props = {
   placement: AdPlacement;
   className?: string;
-  style?: React.CSSProperties;
 };
 
-export function AdSpace({ placement, className, style }: Props) {
+export function AdSpace({ placement, className }: Props) {
   const slots = getAdSlotsByPlacement(placement);
   if (slots.length === 0) return null;
 
   return (
-    <div className={className} style={{ display: "grid", gap: "0.75rem", ...style }}>
+    <div className={`ad-space ${className ?? ""}`}>
       {slots.map((slot) => (
         <AdSlotCard key={slot.id} slot={slot} />
       ))}

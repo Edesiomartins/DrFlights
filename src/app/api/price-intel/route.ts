@@ -1,0 +1,3 @@
+import { NextResponse } from "next/server";
+import { getRoutePriceStats } from "@/lib/price-intel/stats";
+export async function GET(request:Request){const url=new URL(request.url);const origin=(url.searchParams.get("origin")??"").toUpperCase();const destination=(url.searchParams.get("destination")??"").toUpperCase();const current=Number(url.searchParams.get("price"));if(!/^[A-Z]{3}$/.test(origin)||!/^[A-Z]{3}$/.test(destination))return NextResponse.json({error:"Origem e destino inválidos."},{status:400});const stats=await getRoutePriceStats(origin,destination,Number.isFinite(current)?current:undefined);return NextResponse.json(stats,{headers:{"Cache-Control":"public, max-age=3600, stale-while-revalidate=86400"}});}

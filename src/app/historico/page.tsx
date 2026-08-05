@@ -18,24 +18,24 @@ export default async function HistoricoPage() {
   ]);
 
   return (
-    <div className="shell" style={{ padding: "1.5rem 0 3rem", display: "grid", gap: "1.5rem" }}>
-      <h1 style={{ color: "var(--sand)", fontFamily: "var(--font-display)", margin: 0 }}>
+    <div className="shell page-shell">
+      <h1 className="page-title">
         Histórico
       </h1>
 
-      <section className="glass" style={{ borderRadius: "1.25rem", padding: "1.25rem" }}>
-        <h2 style={{ marginTop: 0 }}>Pesquisas recentes</h2>
+      <section className="glass content-card">
+        <h2>Pesquisas recentes</h2>
         {searches.length === 0 ? (
           <p>Nenhuma pesquisa salva ainda.</p>
         ) : (
-          <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>
+          <ul className="history-list">
             {searches.map((search) => {
               const data = search.requestData as {
                 slices?: Array<{ origin?: string; destination?: string; departureDate?: string }>;
               };
               const first = data.slices?.[0];
               return (
-                <li key={search.id} style={{ marginBottom: "0.5rem" }}>
+                <li key={search.id}>
                   {first?.origin} → {first?.destination} em {first?.departureDate} ·{" "}
                   {search.createdAt.toLocaleString("pt-BR")}
                 </li>
@@ -45,13 +45,13 @@ export default async function HistoricoPage() {
         )}
       </section>
 
-      <section className="glass" style={{ borderRadius: "1.25rem", padding: "1.25rem" }}>
-        <h2 style={{ marginTop: 0 }}>Snapshots de preço</h2>
+      <section className="glass content-card">
+        <h2>Snapshots de preço</h2>
         {snapshots.length === 0 ? (
           <p>Sem histórico de preços ainda.</p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.92rem" }}>
+          <div className="table-scroll">
+            <table className="data-table">
               <thead>
                 <tr>
                   <th align="left">Rota</th>

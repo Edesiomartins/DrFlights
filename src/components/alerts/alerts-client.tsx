@@ -95,24 +95,17 @@ export function AlertsClient() {
   }
 
   return (
-    <div style={{ display: "grid", gap: "1.25rem" }}>
+    <div className="alerts-layout">
       {smtpNote ? (
-        <div className="glass" style={{ padding: "1rem", borderRadius: "1rem", color: "var(--warn)" }}>
+        <div className="glass notice-card notice-warn">
           {smtpNote}
         </div>
       ) : null}
 
       <form
-        className="glass"
+        className="glass alert-form"
         onSubmit={onCreate}
         data-testid="alert-form"
-        style={{
-          borderRadius: "1.25rem",
-          padding: "1.25rem",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-          gap: "0.85rem",
-        }}
       >
         <div className="field">
           <label>Origem</label>
@@ -163,39 +156,31 @@ export function AlertsClient() {
           <label>Máx. escalas</label>
           <input name="maxStops" type="number" min={0} max={3} />
         </div>
-        <div style={{ display: "flex", alignItems: "end" }}>
+        <div className="alert-submit-wrap">
           <button className="btn btn-primary" type="submit" data-testid="alert-submit">
             Criar alerta
           </button>
         </div>
       </form>
 
-      {error ? <p style={{ color: "var(--danger)" }}>{error}</p> : null}
+      {error ? <p className="form-error">{error}</p> : null}
 
-      <section style={{ display: "grid", gap: "0.85rem" }}>
+      <section className="alerts-list">
         {alerts.length === 0 ? (
-          <div className="glass" style={{ padding: "1.25rem", borderRadius: "1rem" }}>
+          <div className="glass empty-card">
             Nenhum alerta ainda.
           </div>
         ) : (
           alerts.map((alert) => (
             <article
               key={alert.id}
-              className="glass"
-              style={{
-                borderRadius: "1rem",
-                padding: "1rem 1.1rem",
-                display: "flex",
-                justifyContent: "space-between",
-                gap: "1rem",
-                flexWrap: "wrap",
-              }}
+              className="glass alert-card"
             >
               <div>
                 <strong>
                   {alert.origin} → {alert.destination}
                 </strong>
-                <div style={{ fontSize: "0.9rem", opacity: 0.8 }}>
+                <div className="alert-card-meta">
                   {alert.departureDateFrom} → {alert.departureDateTo}
                   {alert.returnDateFrom ? ` · volta ${alert.returnDateFrom}` : ""}
                   {" · "}
@@ -203,14 +188,14 @@ export function AlertsClient() {
                   {" · "}
                   {alert.active ? "ativo" : "inativo"}
                 </div>
-                <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+                <div className="alert-card-detail">
                   Último preço: {alert.lastMatchedPrice ?? "—"} · última checagem:{" "}
                   {alert.lastCheckedAt
                     ? new Date(alert.lastCheckedAt).toLocaleString("pt-BR")
                     : "nunca"}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: "0.5rem" }}>
+              <div className="alert-card-actions">
                 <button className="btn btn-secondary" type="button" onClick={() => void toggle(alert)}>
                   {alert.active ? "Desativar" : "Ativar"}
                 </button>

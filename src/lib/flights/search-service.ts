@@ -24,6 +24,18 @@ import {
   getSearchCacheTtlSeconds,
 } from "@/lib/utils/env";
 import { logger } from "@/lib/utils/logger";
+import { getRoutePriceStats } from "@/lib/price-intel/stats";
+
+async function buildPriceIntel(offers: NormalizedFlightOffer[], input: FlightSearchInput): Promise<AggregatedSearchResult["priceIntel"]> {
+  const origin=input.slices[0]?.origin; const destination=input.slices[input.slices.length-1]?.destination;
+  if(!origin||!destination)return undefined;
+  const stats=await getRoutePriceStats(origin,destination);
+  if(!stats.enough||stats.p25==null||stats.p75==null)return undefined;
+  const classifications:Record<string,"BAIXO"|"TIPICO"|"ALTO">={};
+  for(const offer of offers){if(offer.totalAmount==null)continue;classifications[offer.id]=offer.totalAmount<=stats.p25?"BAIXO":offer.totalAmount>=stats.p75?"ALTO":"TIPICO";}
+  return {sampleCount:stats.sampleCount,median:stats.median,p25:stats.p25,p75:stats.p75,weekly:stats.weekly,classifications};
+}
+async function buildMileageBonuses(offers:NormalizedFlightOffer[]){const programs=[...new Set(offers.flatMap((o)=>o.pointsProgram?[o.pointsProgram]:[]))];if(!programs.length)return{};const promos=await prisma.mileageTransferPromo.findMany({where:{status:"ACTIVE",validUntil:{gt:new Date()},destinationProgram:{in:programs}}});return Object.fromEntries(programs.map((program)=>[program,Math.max(0,...promos.filter((p)=>p.destinationProgram.toLowerCase()===program.toLowerCase()).map((p)=>p.bonusPercent))]).filter(([,bonus])=>Number(bonus)>0));}
 
 function toPrismaTripType(tripType: FlightSearchInput["tripType"]): PrismaTripType {
   switch (tripType) {
@@ -242,8 +254,10 @@ async function searchProviders(
   const providers = getFlightProviders();
   await hydrateCircuitBreakers(providers.map((p) => p.id));
 
+  const primaryProviders = providers.filter((provider) => provider.id !== "amadeus");
+
   const settled = await Promise.allSettled(
-    providers.map(async (provider) => {
+    primaryProviders.map(async (provider) => {
       if (!canCallProvider(provider.id)) {
         return {
           provider: provider.id,
@@ -262,8 +276,8 @@ async function searchProviders(
     }),
   );
 
-  return settled.map((result, idx) => {
-    const provider = providers[idx]!;
+  const primaryResults = settled.map((result, idx) => {
+    const provider = primaryProviders[idx]!;
     if (result.status === "fulfilled") {
       trackCircuitOutcome(result.value);
       reportMonitoringEvent({
@@ -299,6 +313,18 @@ async function searchProviders(
     });
     return unexpected;
   });
+
+  const travelpayoutsHasOffers = primaryResults.some(
+    (result) => result.provider === "travelpayouts" && result.offers.length > 0,
+  );
+  const amadeus = providers.find((provider) => provider.id === "amadeus");
+  if (!amadeus || travelpayoutsHasOffers) return primaryResults;
+  if (!canCallProvider(amadeus.id)) {
+    return [...primaryResults, { provider: amadeus.id, status: "circuit_open", offers: [], durationMs: 0, error: { code: "CIRCUIT_OPEN", message: "Fonte temporariamente pausada.", retryable: true } }];
+  }
+  const fallback = await amadeus.search(input);
+  trackCircuitOutcome(fallback);
+  return [...primaryResults, fallback];
 }
 
 export async function searchFlights(
@@ -337,6 +363,8 @@ export async function searchFlights(
         providerStatuses:
           cached.providerStatuses as unknown as ProviderSearchResult[],
         highlights: pickHighlights(flat),
+        priceIntel: await buildPriceIntel(flat, input),
+        mileageBonuses: await buildMileageBonuses(flat),
       };
     }
   }
@@ -403,6 +431,8 @@ export async function searchFlights(
   const groups = dedupeOffers(ranked);
   const flat = flattenGroups(groups);
   const highlights = pickHighlights(flat);
+  const priceIntel = await buildPriceIntel(flat, input);
+  const mileageBonuses = await buildMileageBonuses(flat);
 
   const expiresAt = new Date(Date.now() + ttl * 1000);
   const saved = await prisma.search.create({
@@ -453,5 +483,7 @@ export async function searchFlights(
     providerStatuses,
     highlights,
     separateLegsComparison,
+    priceIntel,
+    mileageBonuses,
   };
 }

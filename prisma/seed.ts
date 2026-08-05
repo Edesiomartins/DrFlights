@@ -4,6 +4,11 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.dealSource.upsert({
+    where: { id: "seed-melhores-destinos" },
+    update: {},
+    create: { id: "seed-melhores-destinos", name: "Melhores Destinos", type: "RSS", url: "https://www.melhoresdestinos.com.br/feed", enabled: true },
+  });
   const adminEmails = (process.env.ADMIN_EMAILS ?? "")
     .split(",")
     .map((e) => e.trim().toLowerCase())

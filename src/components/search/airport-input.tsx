@@ -61,7 +61,7 @@ export function AirportInput({ id, label, value, onChange }: Props) {
   }, [query, userEdited]);
 
   return (
-    <div className="field airport-field" ref={boxRef} style={{ position: "relative" }}>
+    <div className="field airport-field" ref={boxRef}>
       <label htmlFor={id}>{label}</label>
       <input
         id={id}

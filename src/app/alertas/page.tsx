@@ -2,8 +2,8 @@ import { AlertsClient } from "@/components/alerts/alerts-client";
 
 export default function AlertasPage() {
   return (
-    <div className="shell" style={{ padding: "1.5rem 0 3rem" }}>
-      <h1 style={{ color: "var(--sand)", fontFamily: "var(--font-display)" }}>
+    <div className="shell page-shell">
+      <h1 className="page-title">
         Alertas de preço
       </h1>
       <AlertsClient />

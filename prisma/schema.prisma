@@ -18,30 +18,50 @@ enum TripType {
   MULTI_CITY
 }
 
+enum DealSourceType {
+  RSS
+  MANUAL
+}
+
+enum DealStatus {
+  NEW
+  VERIFIED
+  EXPIRED
+}
+
+enum MileagePromoStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
 model User {
-  id           String       @id @default(cuid())
-  name         String
-  email        String       @unique
-  passwordHash String
-  role         Role         @default(USER)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  searches     Search[]
-  alerts       PriceAlert[]
+  id                  String                    @id @default(cuid())
+  name                String
+  email               String                    @unique
+  passwordHash        String
+  role                Role                      @default(USER)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  searches            Search[]
+  alerts              PriceAlert[]
+  mileagePromos       MileageTransferPromo[]    @relation("MileagePromoCreator")
+  mileageSubscription MileagePromoSubscription?
+  notificationLogs    NotificationLog[]
 
   @@index([email])
 }
 
 model Search {
-  id                 String    @id @default(cuid())
-  userId             String?
-  user               User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  requestHash        String
-  requestData        Json
-  normalizedResults  Json
-  providerStatuses    Json
-  createdAt          DateTime  @default(now())
-  expiresAt          DateTime
+  id                String   @id @default(cuid())
+  userId            String?
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  requestHash       String
+  requestData       Json
+  normalizedResults Json
+  providerStatuses  Json
+  createdAt         DateTime @default(now())
+  expiresAt         DateTime
 
   @@index([requestHash])
   @@index([userId, createdAt])
@@ -49,7 +69,7 @@ model Search {
 }
 
 model PriceSnapshot {
-  id              String    @id @default(cuid())
+  id              String   @id @default(cuid())
   provider        String
   itineraryHash   String
   origin          String
@@ -64,7 +84,7 @@ model PriceSnapshot {
   pointsProgram   String?
   stops           Int
   durationMinutes Int
-  observedAt      DateTime  @default(now())
+  observedAt      DateTime @default(now())
 
   @@index([origin, destination, tripType, cabin, observedAt])
   @@index([itineraryHash, observedAt])
@@ -72,28 +92,28 @@ model PriceSnapshot {
 }
 
 model PriceAlert {
-  id                 String            @id @default(cuid())
-  userId             String
-  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  origin             String
-  destination        String
-  departureDateFrom  String
-  departureDateTo    String
-  returnDateFrom     String?
-  returnDateTo       String?
-  cabin              String            @default("economy")
-  adults             Int               @default(1)
-  children           Int               @default(0)
-  maxStops           Int?
-  maxPrice           Float?
-  currency           String            @default("BRL")
-  active             Boolean           @default(true)
-  lastCheckedAt      DateTime?
-  lastMatchedPrice   Float?
-  lastNotifiedAt     DateTime?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  notifications      NotificationLog[]
+  id                String            @id @default(cuid())
+  userId            String
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  origin            String
+  destination       String
+  departureDateFrom String
+  departureDateTo   String
+  returnDateFrom    String?
+  returnDateTo      String?
+  cabin             String            @default("economy")
+  adults            Int               @default(1)
+  children          Int               @default(0)
+  maxStops          Int?
+  maxPrice          Float?
+  currency          String            @default("BRL")
+  active            Boolean           @default(true)
+  lastCheckedAt     DateTime?
+  lastMatchedPrice  Float?
+  lastNotifiedAt    DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  notifications     NotificationLog[]
 
   @@index([userId, active])
   @@index([active, lastCheckedAt])
@@ -101,9 +121,12 @@ model PriceAlert {
 }
 
 model NotificationLog {
-  id        String     @id @default(cuid())
-  alertId   String
-  alert     PriceAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  id        String      @id @default(cuid())
+  alertId   String?
+  alert     PriceAlert? @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String      @default("PRICE_ALERT")
   channel   String
   recipient String
   status    String
@@ -111,36 +134,95 @@ model NotificationLog {
   provider  String?
   messageId String?
   error     String?
-  createdAt DateTime   @default(now())
+  createdAt DateTime    @default(now())
 
   @@index([alertId, createdAt])
 }
 
+model DealSource {
+  id        String         @id @default(cuid())
+  name      String
+  type      DealSourceType
+  url       String?
+  enabled   Boolean        @default(true)
+  deals     Deal[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model Deal {
+  id            String     @id @default(cuid())
+  sourceId      String
+  source        DealSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  title         String
+  origin        String?
+  destination   String?
+  price         Float?
+  currency      String?    @default("BRL")
+  originalUrl   String
+  publishedAt   DateTime
+  status        DealStatus @default(NEW)
+  discountScore Float?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@unique([sourceId, originalUrl])
+  @@index([status, publishedAt])
+  @@index([origin, destination])
+}
+
+model MileageTransferPromo {
+  id                 String             @id @default(cuid())
+  sourceProgram      String
+  destinationProgram String
+  bonusPercent       Int
+  validFrom          DateTime           @default(now())
+  validUntil         DateTime
+  officialUrl        String
+  createdById        String
+  createdBy          User               @relation("MileagePromoCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  status             MileagePromoStatus @default(ACTIVE)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([destinationProgram, status, validUntil])
+}
+
+model MileagePromoSubscription {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  active         Boolean   @default(true)
+  lastNotifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
 model ProviderStatus {
-  id                   String    @id @default(cuid())
-  provider             String    @unique
-  enabled              Boolean   @default(true)
-  lastStatus           String?
-  lastLatencyMs        Int?
-  lastSuccessAt        DateTime?
-  lastFailureAt        DateTime?
-  lastError            String?
-  consecutiveFailures  Int       @default(0)
-  circuitState         String    @default("closed")
-  circuitOpenedAt      DateTime?
-  updatedAt            DateTime  @updatedAt
+  id                  String    @id @default(cuid())
+  provider            String    @unique
+  enabled             Boolean   @default(true)
+  lastStatus          String?
+  lastLatencyMs       Int?
+  lastSuccessAt       DateTime?
+  lastFailureAt       DateTime?
+  lastError           String?
+  consecutiveFailures Int       @default(0)
+  circuitState        String    @default("closed")
+  circuitOpenedAt     DateTime?
+  updatedAt           DateTime  @updatedAt
 }
 
 model AffiliateClick {
-  id         String   @id @default(cuid())
-  placement  String
-  partner    String?
-  slotId     String?
-  targetUrl  String
-  userAgent  String?
-  referer    String?
-  ipHash     String?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  placement String
+  partner   String?
+  slotId    String?
+  targetUrl String
+  userAgent String?
+  referer   String?
+  ipHash    String?
+  createdAt DateTime @default(now())
 
   @@index([placement, createdAt])
   @@index([partner, createdAt])

@@ -5,9 +5,9 @@ export default function AfiliadosPage() {
   const appName = getAppName();
 
   return (
-    <div className="shell" style={{ padding: "1.5rem 0 3rem", color: "var(--sand)" }}>
-      <article className="glass" style={{ borderRadius: "1.25rem", padding: "1.5rem", color: "var(--ink)" }}>
-        <h1 style={{ fontFamily: "var(--font-display)", marginTop: 0 }}>Política de Afiliados</h1>
+    <div className="shell page-shell legal-page">
+      <article className="glass content-card legal-card">
+        <h1>Política de Afiliados</h1>
         <p>
           O {appName} pode exibir espaços publicitários e links de parceiros. Alguns links geram
           comissão se você concluir uma compra no site do parceiro — sem custo extra para você.
@@ -40,7 +40,7 @@ export default function AfiliadosPage() {
           sinalizados na interface quando detectados.
         </p>
 
-        <p style={{ fontSize: "0.9rem", opacity: 0.75 }}>
+        <p className="legal-related">
           Veja também a <Link href="/privacidade">Política de Privacidade</Link>.
         </p>
       </article>

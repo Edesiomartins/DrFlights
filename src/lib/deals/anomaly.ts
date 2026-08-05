@@ -1,0 +1,3 @@
+import { getRoutePriceStats } from "@/lib/price-intel/stats";
+import { getDealMadK } from "@/lib/utils/env";
+export async function scoreDealAnomaly(origin:string,destination:string,price:number){const stats=await getRoutePriceStats(origin,destination,price);if(!stats.enough||stats.median==null)return null;const thresholdByMad=stats.mad&&stats.mad>0?stats.median-getDealMadK()*stats.mad:stats.median*.6;const threshold=Math.min(thresholdByMad,stats.median*.6);const discountScore=Math.max(0,((stats.median-price)/stats.median)*100);return{candidate:price<threshold,discountScore,threshold,median:stats.median,sampleCount:stats.sampleCount};}

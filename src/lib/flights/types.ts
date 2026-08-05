@@ -160,4 +160,13 @@ export type AggregatedSearchResult = {
     currency?: string;
     note: string;
   };
+  priceIntel?: {
+    sampleCount: number;
+    median: number | null;
+    p25: number | null;
+    p75: number | null;
+    weekly: Array<{ week: string; median: number }>;
+    classifications: Record<string, "BAIXO" | "TIPICO" | "ALTO">;
+  };
+  mileageBonuses?: Record<string, number>;
 };
