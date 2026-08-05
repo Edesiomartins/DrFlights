@@ -13,7 +13,7 @@ export function SiteMarquee({ appName }: Props) {
     <div className="site-marquee" aria-hidden>
       <ScrollBasedVelocity
         text={text}
-        default_velocity={3}
+        default_velocity={0.7}
         className="site-marquee-text"
       />
     </div>

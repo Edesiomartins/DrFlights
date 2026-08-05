@@ -274,36 +274,32 @@ button:focus-visible {
   position: relative;
   z-index: 30;
   width: 100%;
-  padding: 0.65rem 0 0.75rem;
+  padding: 0.7rem 0 0.8rem;
   overflow: hidden;
   pointer-events: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: linear-gradient(
-    180deg,
-    rgba(7, 25, 35, 0.55),
-    rgba(7, 25, 35, 0.18) 70%,
-    transparent
-  );
+  border-bottom: 1px solid rgba(243, 235, 224, 0.12);
+  background: linear-gradient(180deg, #0a2433 0%, #0d2f40 100%);
 }
 
 .site-marquee-text {
   font-family: var(--font-display);
-  font-size: clamp(1.35rem, 4.5vw, 2.75rem);
+  font-size: clamp(1.25rem, 4vw, 2.35rem);
   font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.15;
-  color: rgba(243, 235, 224, 0.42);
-  text-shadow: 0 1px 0 rgba(7, 25, 35, 0.2);
+  line-height: 1.2;
+  color: #f6eee3;
+  opacity: 0.92;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
   user-select: none;
 }
 
 @media (max-width: 639px) {
   .site-marquee {
-    padding: 0.45rem 0 0.55rem;
+    padding: 0.5rem 0 0.55rem;
   }
 
   .site-marquee-text {
-    font-size: clamp(1.1rem, 6.5vw, 1.55rem);
+    font-size: clamp(1.05rem, 5.8vw, 1.4rem);
   }
 }
 
