@@ -1,4 +1,5 @@
 import { AdSpace } from "@/components/ads/ad-space";
+import { HomeScrollSplit } from "@/components/home/home-scroll-split";
 import { SearchForm } from "@/components/search/search-form";
 import { getAppName } from "@/lib/utils/env";
 
@@ -28,6 +29,9 @@ export default function HomePage() {
           <SearchForm />
         </div>
       </section>
+
+      <HomeScrollSplit />
+
       <section className="home-after shell" aria-labelledby="benefits-title">
         <div className="section-heading">
           <span className="section-kicker">Escolha com confiança</span>
@@ -58,3 +62,4 @@ export default function HomePage() {
     </div>
   );
 }
+

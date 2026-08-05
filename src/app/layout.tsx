@@ -5,6 +5,7 @@ import { AdSpace } from "@/components/ads/ad-space";
 import { CookieBanner } from "@/components/ads/cookie-banner";
 import { Providers } from "@/components/ui/providers";
 import { SiteHeader } from "@/components/ui/site-header";
+import { SiteMarquee } from "@/components/ui/site-marquee";
 import { getAppName } from "@/lib/utils/env";
 import "./globals.css";
 
@@ -31,16 +32,19 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const appName = getAppName();
+
   return (
     <html lang="pt-BR">
       <body className={`${display.variable} ${body.variable} antialiased`}>
         <Providers>
           <SiteHeader />
+          <SiteMarquee appName={appName} />
           <main>{children}</main>
           <footer className="site-footer">
             <div className="shell site-footer-inner">
               <div className="site-footer-brand">
-                <strong>{getAppName()}</strong>
+                <strong>{appName}</strong>
                 <p>Compare tarifas em dinheiro e milhas para viajar com mais clareza.</p>
               </div>
               <div className="site-footer-column">
@@ -74,3 +78,4 @@ export default function RootLayout({
     </html>
   );
 }
+
