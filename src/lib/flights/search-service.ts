@@ -254,10 +254,8 @@ async function searchProviders(
   const providers = getFlightProviders();
   await hydrateCircuitBreakers(providers.map((p) => p.id));
 
-  const primaryProviders = providers.filter((provider) => provider.id !== "amadeus");
-
   const settled = await Promise.allSettled(
-    primaryProviders.map(async (provider) => {
+    providers.map(async (provider) => {
       if (!canCallProvider(provider.id)) {
         return {
           provider: provider.id,
@@ -276,8 +274,8 @@ async function searchProviders(
     }),
   );
 
-  const primaryResults = settled.map((result, idx) => {
-    const provider = primaryProviders[idx]!;
+  return settled.map((result, idx) => {
+    const provider = providers[idx]!;
     if (result.status === "fulfilled") {
       trackCircuitOutcome(result.value);
       reportMonitoringEvent({
@@ -313,18 +311,6 @@ async function searchProviders(
     });
     return unexpected;
   });
-
-  const travelpayoutsHasOffers = primaryResults.some(
-    (result) => result.provider === "travelpayouts" && result.offers.length > 0,
-  );
-  const amadeus = providers.find((provider) => provider.id === "amadeus");
-  if (!amadeus || travelpayoutsHasOffers) return primaryResults;
-  if (!canCallProvider(amadeus.id)) {
-    return [...primaryResults, { provider: amadeus.id, status: "circuit_open", offers: [], durationMs: 0, error: { code: "CIRCUIT_OPEN", message: "Fonte temporariamente pausada.", retryable: true } }];
-  }
-  const fallback = await amadeus.search(input);
-  trackCircuitOutcome(fallback);
-  return [...primaryResults, fallback];
 }
 
 export async function searchFlights(

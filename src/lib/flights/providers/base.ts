@@ -95,7 +95,11 @@ export abstract class BaseFlightProvider implements FlightProvider {
     if (lower.includes("401") || lower.includes("403") || lower.includes("auth")) {
       code = "AUTH_ERROR";
       retryable = false;
-    } else if (lower.includes("429") || lower.includes("rate")) {
+    } else if (
+      lower.includes("429") ||
+      lower.includes("rate") ||
+      name === "RateLimitError"
+    ) {
       code = "RATE_LIMIT";
       retryable = true;
     }

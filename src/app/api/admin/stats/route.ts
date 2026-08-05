@@ -43,5 +43,20 @@ export async function GET() {
     activeAlerts,
     providers,
     topRoutes,
+    dealSources: await prisma.dealSource.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        enabled: true,
+        url: true,
+        lastIngestAt: true,
+        lastIngestCount: true,
+        lastIngestError: true,
+        lastIngestDurationMs: true,
+        _count: { select: { deals: true } },
+      },
+    }),
   });
 }

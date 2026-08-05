@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/db/prisma";
-import { sendEmail } from "@/lib/email/smtp";
+import { dispatchAlertNotifications } from "@/lib/notify/dispatch";
 import { searchFlights } from "@/lib/flights/search-service";
 import type { FlightSearchInput } from "@/lib/flights/types";
-import { isSmtpConfigured } from "@/lib/utils/env";
+import { scoreDealAnomaly } from "@/lib/deals/anomaly";
+import { buildGoUrl } from "@/lib/ads/config";
 import { logger } from "@/lib/utils/logger";
 
 const BATCH_SIZE = 10;
@@ -16,8 +17,15 @@ export type CronAlertsResult = {
   errors: number;
 };
 
+function pickMidDate(from: string, to: string): string {
+  const a = Date.parse(from);
+  const b = Date.parse(to);
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) return from;
+  const mid = new Date((a + b) / 2);
+  return mid.toISOString().slice(0, 10);
+}
+
 export async function runPriceAlerts(): Promise<CronAlertsResult> {
-  const smtpReady = isSmtpConfigured();
   const alerts = await prisma.priceAlert.findMany({
     where: { active: true },
     include: { user: true },
@@ -30,52 +38,128 @@ export async function runPriceAlerts(): Promise<CronAlertsResult> {
 
   for (const alert of alerts) {
     try {
-      const input: FlightSearchInput = {
-        tripType: alert.returnDateFrom ? "round_trip" : "one_way",
-        slices: [
-          {
+      let effectivePrice: number | undefined;
+      let effectiveProvider: string | undefined;
+      let bookingUrl: string | undefined;
+      let discountScore: number | null | undefined;
+      let matchedDestination = alert.destination;
+
+      if (alert.anyDestination || alert.destination === "ANY") {
+        const deal = await prisma.deal.findFirst({
+          where: {
+            status: { in: ["NEW", "VERIFIED"] },
+            origin: alert.origin,
+            price:
+              alert.maxPrice != null
+                ? { lte: alert.maxPrice, not: null }
+                : { not: null },
+            publishedAt: { gte: new Date(Date.now() - 14 * 86400000) },
+            ...(alert.promoOnly ? { discountScore: { gte: 15 } } : {}),
+          },
+          orderBy: { price: "asc" },
+        });
+        if (deal?.price != null) {
+          effectivePrice = deal.price;
+          effectiveProvider = "deal-radar";
+          matchedDestination = deal.destination ?? "ANY";
+          discountScore = deal.discountScore;
+          bookingUrl = buildGoUrl({
+            to: deal.originalUrl,
+            placement: "deals",
+            partner: deal.sourceId,
+          });
+        }
+      } else {
+        const depart = pickMidDate(
+          alert.departureDateFrom,
+          alert.departureDateTo,
+        );
+        const returnDate = alert.returnDateFrom
+          ? pickMidDate(
+              alert.returnDateFrom,
+              alert.returnDateTo ?? alert.returnDateFrom,
+            )
+          : null;
+
+        const input: FlightSearchInput = {
+          tripType: returnDate ? "round_trip" : "one_way",
+          slices: [
+            {
+              origin: alert.origin,
+              destination: alert.destination,
+              departureDate: depart,
+            },
+            ...(returnDate
+              ? [
+                  {
+                    origin: alert.destination,
+                    destination: alert.origin,
+                    departureDate: returnDate,
+                  },
+                ]
+              : []),
+          ],
+          adults: alert.adults,
+          children: alert.children,
+          infants: 0,
+          cabin: alert.cabin as FlightSearchInput["cabin"],
+          maxStops: alert.maxStops ?? undefined,
+          currency: alert.currency,
+        };
+
+        const result = await searchFlights(input, {
+          userId: alert.userId,
+          bypassCache: true,
+        });
+
+        const cashOffers = result.offers.filter(
+          (o) =>
+            o.priceType === "cash" &&
+            o.totalAmount != null &&
+            (!alert.maxStops || o.totalStops <= alert.maxStops),
+        );
+        const best = cashOffers.sort(
+          (a, b) => (a.totalAmount ?? Infinity) - (b.totalAmount ?? Infinity),
+        )[0];
+        const matchingDeal = await prisma.deal.findFirst({
+          where: {
+            status: { in: ["NEW", "VERIFIED"] },
             origin: alert.origin,
             destination: alert.destination,
-            departureDate: alert.departureDateFrom,
+            price: { not: null },
+            publishedAt: { gte: new Date(Date.now() - 14 * 86400000) },
           },
-          ...(alert.returnDateFrom
-            ? [
-                {
-                  origin: alert.destination,
-                  destination: alert.origin,
-                  departureDate: alert.returnDateFrom,
-                },
-              ]
-            : []),
-        ],
-        adults: alert.adults,
-        children: alert.children,
-        infants: 0,
-        cabin: alert.cabin as FlightSearchInput["cabin"],
-        maxStops: alert.maxStops ?? undefined,
-        currency: alert.currency,
-      };
+          orderBy: { price: "asc" },
+        });
 
-      const result = await searchFlights(input, {
-        userId: alert.userId,
-        bypassCache: true,
-      });
-
-      const cashOffers = result.offers.filter(
-        (o) =>
-          o.priceType === "cash" &&
-          o.totalAmount != null &&
-          (!alert.maxStops || o.totalStops <= alert.maxStops),
-      );
-      const best = cashOffers.sort(
-        (a, b) => (a.totalAmount ?? Infinity) - (b.totalAmount ?? Infinity),
-      )[0];
-      const matchingDeal = await prisma.deal.findFirst({
-        where: { status: { in: ["NEW", "VERIFIED"] }, origin: alert.origin, destination: alert.destination, price: { not: null }, publishedAt: { gte: new Date(Date.now() - 14 * 86400000) } },
-        orderBy: { price: "asc" },
-      });
-      const effectivePrice = matchingDeal?.price != null && matchingDeal.price < (best?.totalAmount ?? Infinity) ? matchingDeal.price : best?.totalAmount;
-      const effectiveProvider = matchingDeal?.price === effectivePrice ? "deal-radar" : best?.provider;
+        const dealPrice = matchingDeal?.price;
+        const offerPrice = best?.totalAmount;
+        if (
+          dealPrice != null &&
+          (offerPrice == null || dealPrice < offerPrice)
+        ) {
+          effectivePrice = dealPrice;
+          effectiveProvider = "deal-radar";
+          discountScore = matchingDeal?.discountScore;
+          bookingUrl = matchingDeal
+            ? buildGoUrl({
+                to: matchingDeal.originalUrl,
+                placement: "deals",
+                partner: "deal-radar",
+              })
+            : undefined;
+        } else if (offerPrice != null) {
+          effectivePrice = offerPrice;
+          effectiveProvider = best?.provider;
+          bookingUrl = best?.bookingUrl;
+          const anomaly = await scoreDealAnomaly(
+            alert.origin,
+            alert.destination,
+            offerPrice,
+          );
+          discountScore = anomaly?.discountScore ?? null;
+        }
+      }
 
       await prisma.priceAlert.update({
         where: { id: alert.id },
@@ -85,12 +169,15 @@ export async function runPriceAlerts(): Promise<CronAlertsResult> {
         },
       });
 
-      if (!effectivePrice || alert.maxPrice == null) continue;
-      if (effectivePrice > alert.maxPrice) continue;
+      if (effectivePrice == null) continue;
+      if (alert.maxPrice != null && effectivePrice > alert.maxPrice) continue;
+      if (alert.promoOnly && (discountScore == null || discountScore < 15)) {
+        continue;
+      }
+      if (alert.maxPrice == null && !alert.promoOnly) continue;
 
       const lastNotified = alert.lastNotifiedAt?.getTime() ?? 0;
-      const hoursSince =
-        (Date.now() - lastNotified) / (1000 * 60 * 60);
+      const hoursSince = (Date.now() - lastNotified) / (1000 * 60 * 60);
       const additionalDrop =
         alert.lastMatchedPrice != null &&
         effectivePrice <
@@ -100,61 +187,27 @@ export async function runPriceAlerts(): Promise<CronAlertsResult> {
         continue;
       }
 
-      if (!smtpReady) {
-        await prisma.notificationLog.create({
-          data: {
-            alertId: alert.id,
-            channel: "email",
-            recipient: alert.user.email,
-            status: "skipped",
-            price: effectivePrice,
-            provider: effectiveProvider,
-            error: "SMTP não configurado",
-          },
-        });
-        continue;
-      }
-
-      const subject = `Alerta de preço: ${alert.origin} → ${alert.destination}`;
-      const text = [
-        `Encontramos um preço de ${best?.currency ?? alert.currency} ${effectivePrice.toFixed(2)}`,
-        `na rota ${alert.origin} → ${alert.destination}.`,
-        `Seu limite: ${alert.currency} ${alert.maxPrice}.`,
-        `Fonte: ${effectiveProvider}.`,
-        matchingDeal?.originalUrl ? `Continuar: ${matchingDeal.originalUrl}` : best?.bookingUrl ? `Continuar: ${best.bookingUrl}` : "",
-        "",
-        "Confirme sempre no site do fornecedor antes de comprar.",
-      ]
-        .filter(Boolean)
-        .join("\n");
-
-      const emailResult = await sendEmail({
-        to: alert.user.email,
-        subject,
-        text,
+      const result = await dispatchAlertNotifications({
+        alertId: alert.id,
+        userId: alert.userId,
+        email: alert.user.email,
+        telegramChatId: alert.user.telegramChatId,
+        origin: alert.origin,
+        destination: matchedDestination,
+        price: effectivePrice,
+        currency: alert.currency,
+        maxPrice: alert.maxPrice,
+        provider: effectiveProvider,
+        bookingUrl,
+        discountScore,
       });
 
-      await prisma.notificationLog.create({
-        data: {
-          alertId: alert.id,
-          channel: "email",
-          recipient: alert.user.email,
-          status: emailResult.ok ? "sent" : "error",
-          price: effectivePrice,
-          provider: effectiveProvider,
-          messageId: emailResult.messageId,
-          error: emailResult.error,
-        },
-      });
-
-      if (emailResult.ok) {
+      if (result.anySent) {
         notified += 1;
         await prisma.priceAlert.update({
           where: { id: alert.id },
           data: { lastNotifiedAt: new Date() },
         });
-      } else {
-        errors += 1;
       }
     } catch (error) {
       errors += 1;
@@ -172,7 +225,7 @@ export async function runPriceAlerts(): Promise<CronAlertsResult> {
   return {
     checked: alerts.length,
     notified,
-    skippedSmtp: !smtpReady,
+    skippedSmtp: false,
     errors,
   };
 }

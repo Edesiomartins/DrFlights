@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { flightSearchSchema } from "@/lib/flights/validation";
+import { alertPatchSchema, alertSchema, flightSearchSchema } from "@/lib/flights/validation";
 
 describe("flightSearchSchema", () => {
   it("accepts valid round trip", () => {
@@ -30,5 +30,37 @@ describe("flightSearchSchema", () => {
       cabin: "economy",
     });
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe("alertSchema", () => {
+  it("accepts open destination with max price", () => {
+    const parsed = alertSchema.safeParse({
+      origin: "GRU",
+      destination: "ANY",
+      anyDestination: true,
+      departureDateFrom: "2026-09-01",
+      departureDateTo: "2026-09-30",
+      maxPrice: 1200,
+      cabin: "economy",
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("rejects open destination without maxPrice or promoOnly", () => {
+    const parsed = alertSchema.safeParse({
+      origin: "GRU",
+      destination: "ANY",
+      anyDestination: true,
+      departureDateFrom: "2026-09-01",
+      departureDateTo: "2026-09-30",
+      cabin: "economy",
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("allows partial toggle without destination checks", () => {
+    const parsed = alertPatchSchema.safeParse({ active: false });
+    expect(parsed.success).toBe(true);
   });
 });

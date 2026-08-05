@@ -17,6 +17,18 @@ type Stats = {
   activeAlerts: number;
   providers: ProviderStatusRow[];
   topRoutes: Array<{ route: string; count: number }>;
+  dealSources?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    enabled: boolean;
+    url: string | null;
+    lastIngestAt: string | null;
+    lastIngestCount: number | null;
+    lastIngestError: string | null;
+    lastIngestDurationMs: number | null;
+    _count: { deals: number };
+  }>;
 };
 
 type MileagePromo = {
@@ -265,6 +277,57 @@ export function AdminPanel() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="glass content-card">
+        <h2>Fontes de promoções (DealSource)</h2>
+        {!stats.dealSources?.length ? (
+          <p className="text-muted">Nenhuma fonte cadastrada.</p>
+        ) : (
+          <div className="table-scroll admin-table-wrap">
+            <table className="data-table admin-table">
+              <thead>
+                <tr>
+                  <th align="left">Fonte</th>
+                  <th align="left">Status</th>
+                  <th align="left">Última ingestão</th>
+                  <th align="left">Itens / Deals</th>
+                  <th align="left">Erro</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.dealSources.map((src) => (
+                  <tr key={src.id}>
+                    <td>
+                      <strong>{src.name}</strong>
+                      <div className="text-muted">{src.type}</div>
+                    </td>
+                    <td>
+                      <StatusBadge
+                        label={src.enabled ? "Ativa" : "Desligada"}
+                        tone={src.enabled ? "ok" : "neutral"}
+                      />
+                    </td>
+                    <td>
+                      {src.lastIngestAt
+                        ? new Date(src.lastIngestAt).toLocaleString("pt-BR")
+                        : "nunca"}
+                      {src.lastIngestDurationMs != null
+                        ? ` (${src.lastIngestDurationMs}ms)`
+                        : ""}
+                    </td>
+                    <td>
+                      {src.lastIngestCount ?? "—"} / {src._count.deals}
+                    </td>
+                    <td className="admin-provider-detail admin-provider-detail--failed">
+                      {src.lastIngestError ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section className="glass content-card">

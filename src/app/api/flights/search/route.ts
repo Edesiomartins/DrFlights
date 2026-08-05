@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { flightSearchSchema } from "@/lib/flights/validation";
 import { searchFlights } from "@/lib/flights/search-service";
+import { reportSentryException } from "@/lib/observability/sentry";
 import { clientIp, rateLimit } from "@/lib/security/rate-limit";
 import { getDefaultCurrency } from "@/lib/utils/env";
 import { logger } from "@/lib/utils/logger";
@@ -45,6 +46,12 @@ export async function POST(request: Request) {
   } catch (error) {
     logger.error("api.flights.search.failed", {
       error: error instanceof Error ? error.message : "unknown",
+    });
+    reportSentryException(error, {
+      tags: {
+        route: `${input.slices[0]?.origin}-${input.slices[0]?.destination}`,
+        area: "flights.search",
+      },
     });
     return NextResponse.json(
       { error: "Não foi possível concluir a busca no momento." },

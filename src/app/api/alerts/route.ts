@@ -48,11 +48,13 @@ export async function POST(request: Request) {
   }
 
   const data = parsed.data;
+  const anyDestination = data.anyDestination || data.destination === "ANY";
   const alert = await prisma.priceAlert.create({
     data: {
       userId: session.user.id,
       origin: data.origin,
-      destination: data.destination,
+      destination: anyDestination ? "ANY" : data.destination,
+      anyDestination,
       departureDateFrom: data.departureDateFrom,
       departureDateTo: data.departureDateTo,
       returnDateFrom: data.returnDateFrom ?? null,
@@ -63,6 +65,7 @@ export async function POST(request: Request) {
       maxStops: data.maxStops ?? null,
       maxPrice: data.maxPrice ?? null,
       currency: data.currency,
+      promoOnly: data.promoOnly ?? false,
       active: data.active ?? true,
     },
   });

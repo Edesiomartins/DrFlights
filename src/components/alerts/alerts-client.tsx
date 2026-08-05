@@ -1,17 +1,21 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { TelegramLinkCard } from "@/components/alerts/telegram-link-card";
+import { PushEnableCard } from "@/components/alerts/push-enable-card";
 
 type Alert = {
   id: string;
   origin: string;
   destination: string;
+  anyDestination?: boolean;
   departureDateFrom: string;
   departureDateTo: string;
   returnDateFrom: string | null;
   maxPrice: number | null;
   currency: string;
   cabin: string;
+  promoOnly?: boolean;
   active: boolean;
   lastMatchedPrice: number | null;
   lastCheckedAt: string | null;
@@ -21,6 +25,8 @@ export function AlertsClient() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [smtpNote, setSmtpNote] = useState<string | null>(null);
+  const [anyDestination, setAnyDestination] = useState(false);
+  const [promoOnly, setPromoOnly] = useState(false);
 
   async function load() {
     const [alertsRes, healthRes] = await Promise.all([
@@ -36,7 +42,9 @@ export function AlertsClient() {
     if (healthRes.ok) {
       const health = (await healthRes.json()) as { smtpConfigured?: boolean };
       if (!health.smtpConfigured) {
-        setSmtpNote("SMTP não configurado: a criação de alertas funciona, mas o envio de e-mail está desativado.");
+        setSmtpNote(
+          "SMTP não configurado: a criação de alertas funciona, mas o envio de e-mail está desativado. Use Telegram ou Web Push se configurados.",
+        );
       }
     }
   }
@@ -50,19 +58,24 @@ export function AlertsClient() {
     setError(null);
     const formEl = event.currentTarget;
     const form = new FormData(formEl);
+    const destRaw = String(form.get("destination") || "").toUpperCase();
     const payload = {
       origin: String(form.get("origin")).toUpperCase(),
-      destination: String(form.get("destination")).toUpperCase(),
+      destination: anyDestination ? "ANY" : destRaw,
+      anyDestination,
       departureDateFrom: String(form.get("departureDateFrom")),
       departureDateTo: String(form.get("departureDateTo")),
       returnDateFrom: String(form.get("returnDateFrom") || "") || null,
       cabin: String(form.get("cabin")),
       adults: Number(form.get("adults") || 1),
       children: Number(form.get("children") || 0),
-      maxPrice: Number(form.get("maxPrice")),
+      maxPrice: form.get("maxPrice")
+        ? Number(form.get("maxPrice"))
+        : null,
       currency: String(form.get("currency") || "BRL"),
       maxStops:
         form.get("maxStops") === "" ? null : Number(form.get("maxStops")),
+      promoOnly,
       active: true,
     };
 
@@ -77,6 +90,8 @@ export function AlertsClient() {
       return;
     }
     formEl.reset();
+    setAnyDestination(false);
+    setPromoOnly(false);
     await load();
   }
 
@@ -97,10 +112,11 @@ export function AlertsClient() {
   return (
     <div className="alerts-layout">
       {smtpNote ? (
-        <div className="glass notice-card notice-warn">
-          {smtpNote}
-        </div>
+        <div className="glass notice-card notice-warn">{smtpNote}</div>
       ) : null}
+
+      <TelegramLinkCard />
+      <PushEnableCard />
 
       <form
         className="glass alert-form"
@@ -113,7 +129,24 @@ export function AlertsClient() {
         </div>
         <div className="field">
           <label>Destino</label>
-          <input name="destination" required maxLength={3} placeholder="GIG" />
+          <input
+            name="destination"
+            required={!anyDestination}
+            disabled={anyDestination}
+            maxLength={3}
+            placeholder={anyDestination ? "ANY" : "GIG"}
+          />
+        </div>
+        <div className="field field-checkbox">
+          <label>
+            <input
+              type="checkbox"
+              checked={anyDestination}
+              onChange={(e) => setAnyDestination(e.target.checked)}
+              data-testid="alert-any-destination"
+            />{" "}
+            Qualquer destino
+          </label>
         </div>
         <div className="field">
           <label>Ida de</label>
@@ -129,7 +162,23 @@ export function AlertsClient() {
         </div>
         <div className="field">
           <label>Preço máx.</label>
-          <input name="maxPrice" type="number" step="0.01" required />
+          <input
+            name="maxPrice"
+            type="number"
+            step="0.01"
+            required={!promoOnly}
+          />
+        </div>
+        <div className="field field-checkbox">
+          <label>
+            <input
+              type="checkbox"
+              checked={promoOnly}
+              onChange={(e) => setPromoOnly(e.target.checked)}
+              data-testid="alert-promo-only"
+            />{" "}
+            Só promoções (anomalia de preço)
+          </label>
         </div>
         <div className="field">
           <label>Moeda</label>
@@ -157,7 +206,11 @@ export function AlertsClient() {
           <input name="maxStops" type="number" min={0} max={3} />
         </div>
         <div className="alert-submit-wrap">
-          <button className="btn btn-primary" type="submit" data-testid="alert-submit">
+          <button
+            className="btn btn-primary"
+            type="submit"
+            data-testid="alert-submit"
+          >
             Criar alerta
           </button>
         </div>
@@ -167,39 +220,51 @@ export function AlertsClient() {
 
       <section className="alerts-list">
         {alerts.length === 0 ? (
-          <div className="glass empty-card">
-            Nenhum alerta ainda.
-          </div>
+          <div className="glass empty-card">Nenhum alerta ainda.</div>
         ) : (
           alerts.map((alert) => (
-            <article
-              key={alert.id}
-              className="glass alert-card"
-            >
+            <article key={alert.id} className="glass alert-card">
               <div>
                 <strong>
-                  {alert.origin} → {alert.destination}
+                  {alert.origin} →{" "}
+                  {alert.anyDestination || alert.destination === "ANY"
+                    ? "qualquer destino"
+                    : alert.destination}
                 </strong>
                 <div className="alert-card-meta">
                   {alert.departureDateFrom} → {alert.departureDateTo}
-                  {alert.returnDateFrom ? ` · volta ${alert.returnDateFrom}` : ""}
+                  {alert.returnDateFrom
+                    ? ` · volta ${alert.returnDateFrom}`
+                    : ""}
                   {" · "}
-                  limite {alert.currency} {alert.maxPrice}
+                  {alert.maxPrice != null
+                    ? `limite ${alert.currency} ${alert.maxPrice}`
+                    : "sem limite de preço"}
+                  {alert.promoOnly ? " · só promoção" : ""}
                   {" · "}
                   {alert.active ? "ativo" : "inativo"}
                 </div>
                 <div className="alert-card-detail">
-                  Último preço: {alert.lastMatchedPrice ?? "—"} · última checagem:{" "}
+                  Último preço: {alert.lastMatchedPrice ?? "—"} · última
+                  checagem:{" "}
                   {alert.lastCheckedAt
                     ? new Date(alert.lastCheckedAt).toLocaleString("pt-BR")
                     : "nunca"}
                 </div>
               </div>
               <div className="alert-card-actions">
-                <button className="btn btn-secondary" type="button" onClick={() => void toggle(alert)}>
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={() => void toggle(alert)}
+                >
                   {alert.active ? "Desativar" : "Ativar"}
                 </button>
-                <button className="btn btn-secondary" type="button" onClick={() => void remove(alert.id)}>
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={() => void remove(alert.id)}
+                >
                   Excluir
                 </button>
               </div>

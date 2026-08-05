@@ -14,10 +14,18 @@ type Props = {
   badge?: string;
   valueReasons?: string[];
   priceClassification?: "BAIXO" | "TIPICO" | "ALTO";
+  priceSampleCount?: number;
   mileageBonus?: number;
 };
 
-export function OfferCard({ offer, badge, valueReasons, priceClassification, mileageBonus }: Props) {
+export function OfferCard({
+  offer,
+  badge,
+  valueReasons,
+  priceClassification,
+  priceSampleCount,
+  mileageBonus,
+}: Props) {
   const expired =
     offer.expiresAt != null && Date.parse(offer.expiresAt) < Date.now();
   const first = offer.slices[0];
@@ -39,7 +47,26 @@ export function OfferCard({ offer, badge, valueReasons, priceClassification, mil
       <div className="offer-badges">
         {badge ? <span className="offer-badge">{badge}</span> : null}
         {offer.separateTickets ? <span className="offer-badge offer-badge-warn">Self-transfer</span> : null}
-        {priceClassification ? <span className={`offer-badge price-badge price-badge--${priceClassification.toLowerCase()}`} title="Classificação calculada com percentis dos preços observados nos últimos 90 dias.">{priceClassification === "BAIXO" ? "Preço abaixo do normal para esta rota" : priceClassification === "ALTO" ? "Preço alto" : "Preço típico"}</span> : null}
+        {priceClassification ? (
+          <span
+            className={`offer-badge price-badge price-badge--${priceClassification.toLowerCase()}`}
+            data-testid="price-seal"
+            title={
+              priceSampleCount
+                ? `Classificação pelos percentis (p25/p75) de ${priceSampleCount} preços observados nos últimos 90 dias nesta rota. Sem amostra suficiente o selo não aparece.`
+                : "Classificação baseada em percentis históricos da rota (últimos 90 dias)."
+            }
+          >
+            {priceClassification === "BAIXO"
+              ? "Preço abaixo do normal para esta rota"
+              : priceClassification === "ALTO"
+                ? "Preço alto"
+                : "Preço típico"}
+            {priceSampleCount ? (
+              <em className="price-seal-hint"> · {priceSampleCount} amostras</em>
+            ) : null}
+          </span>
+        ) : null}
         {mileageBonus ? <span className="offer-badge mileage-bonus-badge">Programa com transferência bonificada de até {mileageBonus}%</span> : null}
       </div>
       <div className="offer-main-grid">

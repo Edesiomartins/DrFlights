@@ -22,9 +22,32 @@ export function getDuffelApiKey(): string | undefined {
 
 export function getTravelpayoutsToken(): string | undefined { return read("TRAVELPAYOUTS_TOKEN"); }
 export function getTravelpayoutsMarker(): string | undefined { return read("TRAVELPAYOUTS_MARKER"); }
-export function getAmadeusClientId(): string | undefined { return read("AMADEUS_CLIENT_ID"); }
-export function getAmadeusClientSecret(): string | undefined { return read("AMADEUS_CLIENT_SECRET"); }
-export function getAmadeusBaseUrl(): string { return read("AMADEUS_BASE_URL") ?? "https://test.api.amadeus.com"; }
+export function getTravelpayoutsRpm(): number {
+  const raw = Number(read("TRAVELPAYOUTS_RPM") ?? "60");
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 60;
+}
+
+export function getTelegramBotToken(): string | undefined {
+  return read("TELEGRAM_BOT_TOKEN");
+}
+export function getTelegramBotUsername(): string | undefined {
+  const raw = read("TELEGRAM_BOT_USERNAME");
+  return raw?.replace(/^@/, "");
+}
+
+export function getVapidPublicKey(): string | undefined {
+  return read("NEXT_PUBLIC_VAPID_PUBLIC_KEY") ?? read("VAPID_PUBLIC_KEY");
+}
+export function getVapidPrivateKey(): string | undefined {
+  return read("VAPID_PRIVATE_KEY");
+}
+export function getVapidSubject(): string {
+  return read("VAPID_SUBJECT") ?? "mailto:admin@example.com";
+}
+
+export function getSentryDsn(): string | undefined {
+  return read("SENTRY_DSN") ?? read("NEXT_PUBLIC_SENTRY_DSN");
+}
 export function getDealMadK(): number {
   const raw = Number(read("DEAL_MAD_K") ?? "2.5");
   return Number.isFinite(raw) && raw > 0 ? raw : 2.5;

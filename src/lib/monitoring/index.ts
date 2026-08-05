@@ -85,5 +85,9 @@ export function reportUnhandledError(error: unknown, context?: string): void {
     message,
     tags: { context: context ?? "server" },
   });
+  // Lazy import to avoid circular deps in edge cases
+  void import("@/lib/observability/sentry").then(({ reportSentryException }) => {
+    reportSentryException(error, { tags: { context: context ?? "server" } });
+  });
   logger.error("monitoring.unhandled_error", { message, context });
 }

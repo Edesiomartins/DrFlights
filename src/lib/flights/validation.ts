@@ -77,9 +77,18 @@ export const registerSchema = z.object({
   password: z.string().min(8).max(128),
 });
 
-export const alertSchema = z.object({
+const destinationOrAny = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .refine((v) => v === "ANY" || /^[A-Z]{3}$/.test(v), {
+    message: "Destino deve ser IATA ou ANY",
+  });
+
+const alertObjectSchema = z.object({
   origin: iata,
-  destination: iata,
+  destination: destinationOrAny,
+  anyDestination: z.boolean().optional().default(false),
   departureDateFrom: dateStr,
   departureDateTo: dateStr,
   returnDateFrom: dateStr.optional().nullable(),
@@ -92,5 +101,28 @@ export const alertSchema = z.object({
   maxStops: z.number().int().min(0).max(3).optional().nullable(),
   maxPrice: z.number().positive().optional().nullable(),
   currency: z.string().trim().toUpperCase().length(3).default("BRL"),
+  promoOnly: z.boolean().optional().default(false),
   active: z.boolean().optional().default(true),
 });
+
+export const alertSchema = alertObjectSchema.superRefine((data, ctx) => {
+  const open = Boolean(data.anyDestination) || data.destination === "ANY";
+  if (open && data.maxPrice == null && !data.promoOnly) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message:
+        "Alertas com destino aberto exigem preço máximo ou filtro só-promoção.",
+      path: ["maxPrice"],
+    });
+  }
+  if (!open && data.origin === data.destination) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Origem e destino devem ser diferentes.",
+      path: ["destination"],
+    });
+  }
+});
+
+/** Partial updates (toggle active, etc.) — no full-create refinements. */
+export const alertPatchSchema = alertObjectSchema.partial();

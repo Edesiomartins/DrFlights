@@ -4,9 +4,14 @@ import {
   dismissCookieBannerIfPresent,
   futureDate,
   mockFlightSearch,
+  skipOnboarding,
 } from "./helpers";
 
 test.describe("Jornada principal DrFlights", () => {
+  test.beforeEach(async ({ page }) => {
+    await skipOnboarding(page);
+  });
+
   test("abre home, rejeita cookies publicitários, busca, filtra e abre oferta", async ({
     page,
   }) => {
@@ -183,6 +188,23 @@ test.describe("Jornada principal DrFlights", () => {
     await page.getByTestId("alert-submit").click();
     expect((await createResponse).status()).toBe(201);
     await expect(page.getByText("GRU → GIG")).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("abre página de promoções com estado vazio ou lista real", async ({
+    page,
+  }) => {
+    await page.goto("/promocoes");
+    await dismissCookieBannerIfPresent(page);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    const empty = page.getByText(/Nenhuma promoção recente/i);
+    const cards = page.locator(".deal-card");
+    await expect(empty.or(cards.first())).toBeVisible();
+  });
+
+  test("rota SEO sem dados fictícios", async ({ page }) => {
+    await page.goto("/voos/xxx-yyy");
+    await expect(page.getByTestId("route-empty-price")).toBeVisible();
+    await expect(page.getByText(/não há preço observado|Ainda não há/i)).toBeVisible();
   });
 });
 

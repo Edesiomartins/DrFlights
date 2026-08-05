@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
-import { alertSchema } from "@/lib/flights/validation";
+import { alertPatchSchema } from "@/lib/flights/validation";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -28,7 +28,7 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
-  const parsed = alertSchema.partial().safeParse(body);
+  const parsed = alertPatchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Dados inválidos.", details: parsed.error.flatten() },
@@ -36,14 +36,27 @@ export async function PATCH(request: Request, { params }: Params) {
     );
   }
 
+  const data = parsed.data;
+  const anyDestination =
+    data.anyDestination === true || data.destination === "ANY"
+      ? true
+      : data.anyDestination === false
+        ? false
+        : undefined;
+
   const alert = await prisma.priceAlert.update({
     where: { id },
     data: {
-      ...parsed.data,
-      returnDateFrom: parsed.data.returnDateFrom ?? undefined,
-      returnDateTo: parsed.data.returnDateTo ?? undefined,
-      maxStops: parsed.data.maxStops === null ? null : parsed.data.maxStops,
-      maxPrice: parsed.data.maxPrice === null ? null : parsed.data.maxPrice,
+      ...data,
+      ...(anyDestination === true
+        ? { anyDestination: true, destination: "ANY" }
+        : anyDestination === false && data.destination
+          ? { anyDestination: false, destination: data.destination }
+          : {}),
+      returnDateFrom: data.returnDateFrom ?? undefined,
+      returnDateTo: data.returnDateTo ?? undefined,
+      maxStops: data.maxStops === null ? null : data.maxStops,
+      maxPrice: data.maxPrice === null ? null : data.maxPrice,
     },
   });
 

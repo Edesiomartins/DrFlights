@@ -4,6 +4,7 @@ import { Fraunces, Manrope } from "next/font/google";
 import { AdSpace } from "@/components/ads/ad-space";
 import { CookieBanner } from "@/components/ads/cookie-banner";
 import { Providers } from "@/components/ui/providers";
+import { PwaRegister } from "@/components/ui/pwa-register";
 import { SiteHeader } from "@/components/ui/site-header";
 import { SiteMarquee } from "@/components/ui/site-marquee";
 import { getAppName } from "@/lib/utils/env";
@@ -25,6 +26,14 @@ export const metadata: Metadata = {
   title: getAppName(),
   description:
     "Metabuscador de passagens aéreas — compare preços em dinheiro e milhas.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: getAppName(),
+  },
+  other: {
+    "theme-color": "#0f1720",
+  },
 };
 
 export default function RootLayout({
@@ -38,6 +47,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={`${display.variable} ${body.variable} antialiased`}>
         <Providers>
+          <PwaRegister />
           <SiteHeader />
           <SiteMarquee appName={appName} />
           <main>{children}</main>
@@ -51,6 +61,7 @@ export default function RootLayout({
                 <strong>Produto</strong>
                 <Link href="/">Buscar voos</Link>
                 <Link href="/alertas">Alertas de preço</Link>
+                <Link href="/promocoes">Promoções</Link>
                 <Link href="/historico">Histórico</Link>
               </div>
               <div className="site-footer-column">
@@ -78,4 +89,3 @@ export default function RootLayout({
     </html>
   );
 }
-

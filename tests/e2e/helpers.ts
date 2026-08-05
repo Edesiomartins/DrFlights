@@ -194,6 +194,24 @@ export async function dismissCookieBannerIfPresent(page: Page) {
   }
 }
 
+export async function dismissOnboardingIfPresent(page: Page) {
+  const tour = page.getByTestId("onboarding-tour");
+  if (await tour.isVisible().catch(() => false)) {
+    await page.getByRole("button", { name: /Pular/i }).click();
+  }
+}
+
+/** Avoid first-visit onboarding blocking E2E interactions. */
+export async function skipOnboarding(page: Page) {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("drflights-onboarding-v1", "done");
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
 export function futureDate(daysAhead: number): string {
   const d = new Date();
   d.setDate(d.getDate() + daysAhead);

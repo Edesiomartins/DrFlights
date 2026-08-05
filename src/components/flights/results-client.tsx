@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdSlotCard } from "@/components/ads/ad-slot-card";
 import { OfferCard } from "@/components/flights/offer-card";
+import { PriceCalendar } from "@/components/flights/price-calendar";
 import { ResultsSkeleton } from "@/components/flights/results-skeleton";
 import type { AdSlotConfig } from "@/lib/ads/config";
 import type {
@@ -207,6 +208,21 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
           </span>
         </div>
         {data.priceIntel?.weekly?.length ? <PriceSparkline points={data.priceIntel.weekly} /> : null}
+
+        {(() => {
+          const q = queryPayload as {
+            slices?: Array<{ origin?: string; destination?: string }>;
+          };
+          const origin = q.slices?.[0]?.origin;
+          const destination = q.slices?.[0]?.destination;
+          if (!origin || !destination) return null;
+          return (
+            <div className="results-calendar-wrap">
+              <h2 className="results-calendar-title">Calendário de preços</h2>
+              <PriceCalendar origin={origin} destination={destination} />
+            </div>
+          );
+        })()}
 
         {data.highlights.bestValueReasons?.length ? (
           <div className="results-value-why" role="note">
@@ -420,6 +436,7 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
                     : undefined
                 }
                 priceClassification={data.priceIntel?.classifications[offer.id]}
+                priceSampleCount={data.priceIntel?.sampleCount}
                 mileageBonus={offer.pointsProgram ? data.mileageBonuses?.[offer.pointsProgram] : undefined}
               />
               {inlineAds.length > 0 && index === 2

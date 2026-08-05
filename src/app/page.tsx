@@ -1,6 +1,7 @@
 import { AdSpace } from "@/components/ads/ad-space";
 import { HomeScrollSplit } from "@/components/home/home-scroll-split";
 import { SearchForm } from "@/components/search/search-form";
+import { OnboardingTour } from "@/components/ui/onboarding-tour";
 import { getAppName } from "@/lib/utils/env";
 
 export default function HomePage() {
@@ -8,6 +9,7 @@ export default function HomePage() {
 
   return (
     <div className="home-page">
+      <OnboardingTour />
       <section className="home-hero">
         <svg className="home-route-art" viewBox="0 0 560 280" aria-hidden>
           <path d="M28 220C130 35 356 324 530 58" />
@@ -62,4 +64,3 @@ export default function HomePage() {
     </div>
   );
 }
-
