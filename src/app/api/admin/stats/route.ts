@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { ACTIVE_PROVIDER_IDS } from "@/lib/flights/providers/registry";
 
 export async function GET() {
   const session = await auth();
@@ -13,13 +14,23 @@ export async function GET() {
       prisma.user.count(),
       prisma.search.count(),
       prisma.priceAlert.count({ where: { active: true } }),
-      prisma.providerStatus.findMany({ orderBy: { provider: "asc" } }),
+      prisma.providerStatus.findMany({
+        where: { provider: { in: [...ACTIVE_PROVIDER_IDS] } },
+        orderBy: { provider: "asc" },
+      }),
       prisma.search.findMany({
         orderBy: { createdAt: "desc" },
         take: 50,
         select: { requestData: true, createdAt: true },
       }),
     ]);
+
+  // Purge ProviderStatus rows for providers no longer in the registry.
+  void prisma.providerStatus
+    .deleteMany({
+      where: { provider: { notIn: [...ACTIVE_PROVIDER_IDS] } },
+    })
+    .catch(() => undefined);
 
   const routeCounts = new Map<string, number>();
   for (const search of recentSearches) {

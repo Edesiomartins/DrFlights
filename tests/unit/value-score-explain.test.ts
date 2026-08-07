@@ -35,7 +35,7 @@ function makeOffer(
   ];
   const cabin = overrides.cabin ?? "economy";
   return {
-    provider: "duffel",
+    provider: "kiwi",
     providerOfferId: overrides.id,
     priceType: "cash",
     currency: "BRL",

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdSlotCard } from "@/components/ads/ad-slot-card";
 import { OfferCard } from "@/components/flights/offer-card";
 import { PriceCalendar } from "@/components/flights/price-calendar";
+import { MatrixGrid } from "@/components/flights/matrix-grid";
 import { ResultsSkeleton } from "@/components/flights/results-skeleton";
 import type { AdSlotConfig } from "@/lib/ads/config";
 import type {
@@ -211,16 +212,20 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
 
         {(() => {
           const q = queryPayload as {
-            slices?: Array<{ origin?: string; destination?: string }>;
+            slices?: Array<{ origin?: string; destination?: string; departureDate?: string }>;
           };
           const origin = q.slices?.[0]?.origin;
           const destination = q.slices?.[0]?.destination;
+          const departureDate = q.slices?.[0]?.departureDate;
           if (!origin || !destination) return null;
           return (
-            <div className="results-calendar-wrap">
-              <h2 className="results-calendar-title">Calendário de preços</h2>
-              <PriceCalendar origin={origin} destination={destination} />
-            </div>
+            <>
+              <MatrixGrid offers={data.offers} baseDepartDate={departureDate} />
+              <div className="results-calendar-wrap">
+                <h2 className="results-calendar-title">Calendário de preços</h2>
+                <PriceCalendar origin={origin} destination={destination} />
+              </div>
+            </>
           );
         })()}
 
@@ -324,11 +329,10 @@ export function ResultsClient({ queryPayload, inlineAds = [] }: Props) {
               onChange={(e) => setProvider(e.target.value)}
             >
               <option value="">Todos</option>
-              <option value="duffel">Duffel</option>
               <option value="ignav">Ignav</option>
               <option value="kiwi">Kiwi.com</option>
               <option value="skiplagged">Skiplagged</option>
-              <option value="seats-aero">Seats.aero</option>
+              <option value="travelpayouts">Travelpayouts</option>
             </select>
           </div>
           <div className="field">

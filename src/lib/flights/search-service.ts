@@ -11,6 +11,7 @@ import {
   recordProviderSuccess,
 } from "@/lib/flights/providers/circuit-breaker";
 import { getFlightProviders } from "@/lib/flights/providers/registry";
+import { computeMileageArbitrage } from "@/lib/flights/mileage/mileage-arbitrage";
 import { pickHighlights, rankOffers } from "@/lib/flights/ranking/value-score";
 import type {
   AggregatedSearchResult,
@@ -413,12 +414,26 @@ export async function searchFlights(
   }
 
   offers = await applyPromotions(offers, input);
+  const mileageBonuses = await buildMileageBonuses(offers);
+
+  const cheapestCash = offers
+    .filter((o) => o.priceType === "cash" && o.totalAmount != null)
+    .sort((a, b) => (a.totalAmount ?? Infinity) - (b.totalAmount ?? Infinity))[0]?.totalAmount;
+
+  offers = offers.map((offer) => {
+    if (offer.priceType !== "points") return offer;
+    const bonus = offer.pointsProgram ? (mileageBonuses[offer.pointsProgram] ?? 0) : 0;
+    return {
+      ...offer,
+      mileageArbitrage: computeMileageArbitrage(offer, cheapestCash, bonus),
+    };
+  });
+
   const ranked = rankOffers(offers, "value");
   const groups = dedupeOffers(ranked);
   const flat = flattenGroups(groups);
   const highlights = pickHighlights(flat);
   const priceIntel = await buildPriceIntel(flat, input);
-  const mileageBonuses = await buildMileageBonuses(flat);
 
   const expiresAt = new Date(Date.now() + ttl * 1000);
   const saved = await prisma.search.create({

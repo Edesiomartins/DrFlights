@@ -29,7 +29,7 @@ export default function PrivacidadePage() {
 
         <h2>Compartilhamento</h2>
         <p>
-          Ao continuar em um fornecedor (Duffel, Kiwi, Skiplagged etc.), você deixa o {appName} e
+          Ao continuar em um fornecedor (Kiwi, Skiplagged, Travelpayouts etc.), você deixa o {appName} e
           passa a se relacionar com a política daquele site. Podemos registrar o clique para
           medir afiliados.
         </p>

@@ -269,7 +269,7 @@ button:focus-visible {
   backdrop-filter: blur(16px);
 }
 
-/* Scroll marquee — all pages, below header */
+/* Scroll marquee â all pages, below header */
 .site-marquee {
   position: relative;
   z-index: 30;
@@ -316,7 +316,7 @@ button:focus-visible {
 }
 
 .site-logo::before {
-  content: "✈";
+  content: "â";
   display: grid;
   place-items: center;
   width: 2rem;
@@ -1309,7 +1309,7 @@ article.glass a:not(.btn),
 
 .home-page { padding-bottom: 0; overflow-x: clip; }
 .home-hero { min-height: clamp(540px, 65vh, 620px); padding: 3rem max(1rem, calc((100vw - 1200px) / 2)) 6rem; overflow: visible; }
-.home-route-art { position: absolute; right: max(1rem, calc((100vw - 1200px) / 2)); top: 2rem; width: min(44vw, 560px); opacity: 0.8; pointer-events: none; }
+.home-route-art { position: absolute; right: max(1rem, calc((100vw - 1200px) / 2)); top: 2rem; width: min(44vw, 560px); opacity: 0.45; pointer-events: none; }
 .home-route-art > path { fill: none; stroke: rgba(137, 221, 211, 0.42); stroke-width: 2; stroke-dasharray: 7 9; }
 .home-route-art circle { fill: var(--accent); }
 .home-route-plane path { fill: var(--sand); }
@@ -1433,7 +1433,7 @@ article.glass a:not(.btn),
   .site-footer-column { grid-column: 1; }
 }
 
-/* Phase 2 � calendar, onboarding, alerts extras */
+/* Phase 2  calendar, onboarding, alerts extras */
 .price-calendar-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
@@ -1496,3 +1496,380 @@ article.glass a:not(.btn),
 .page-header-block { margin-bottom: 1.25rem; }
 .page-lead { max-width: 54ch; opacity: .85; }
 .route-calendar-section { margin-top: 1.5rem; }
+
+/* A11y */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Marquee  interactive promo feed */
+.site-marquee {
+  pointer-events: auto;
+}
+.site-marquee--loading {
+  display: flex;
+  justify-content: center;
+  min-height: 2.75rem;
+  align-items: center;
+}
+.site-marquee-skeleton {
+  color: rgba(246, 238, 227, 0.65);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+}
+.site-marquee-track { width: 100%; }
+.site-marquee-segment {
+  display: inline-flex;
+  margin-right: 2.5rem;
+}
+.site-marquee-items {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.75rem;
+}
+.site-marquee-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0.15rem 0.35rem;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 0.35rem;
+  outline-offset: 3px;
+}
+.site-marquee-link:hover,
+.site-marquee-link:focus-visible {
+  background: rgba(246, 238, 227, 0.12);
+  text-decoration: none;
+}
+.site-marquee-route { font-weight: 700; }
+.site-marquee-price {
+  font-family: var(--font-body);
+  font-size: 0.55em;
+  font-weight: 700;
+  opacity: 0.92;
+}
+.site-marquee-badge {
+  font-family: var(--font-body);
+  font-size: 0.42em;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #89ddd3;
+}
+
+/* Hero promo chips + deal card */
+.home-deal-chips {
+  margin-top: 1.15rem;
+  max-width: 36rem;
+}
+.home-deal-chips-label {
+  margin: 0 0 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-dark, #0f6f67);
+}
+.home-deal-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+.home-deal-chip {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid color-mix(in srgb, var(--sea, #1f7a6a) 35%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, #fff 78%, var(--sea-soft, #d8f3ef));
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.home-deal-chip-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.75rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink);
+}
+.home-deal-chip-main:focus-visible {
+  outline: 2px solid var(--sea);
+  outline-offset: -2px;
+}
+.home-deal-chip-route { font-weight: 800; font-size: 0.86rem; }
+.home-deal-chip-price { font-size: 0.82rem; color: var(--ink-muted); }
+.home-deal-chip-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #08786c;
+  background: var(--sea-soft);
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+}
+.home-deal-chip-offer {
+  display: grid;
+  place-items: center;
+  padding: 0 0.7rem;
+  border-left: 1px solid color-mix(in srgb, var(--sea) 25%, transparent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #08786c;
+  text-decoration: none;
+}
+.home-deal-chip-offer:hover { text-decoration: underline; }
+
+.home-hero-aside {
+  position: absolute;
+  right: max(1rem, calc((100vw - 1200px) / 2));
+  top: 8.5rem;
+  z-index: 2;
+  width: min(260px, 28vw);
+}
+.home-deal-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(160deg, rgba(11, 31, 42, 0.92), rgba(15, 111, 103, 0.88));
+  color: #f6eee3;
+  box-shadow: 0 18px 40px rgba(7, 25, 35, 0.35);
+  overflow: hidden;
+}
+.home-deal-card-body {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 1rem 1rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.home-deal-card-body:focus-visible {
+  outline: 2px solid #89ddd3;
+  outline-offset: -2px;
+}
+.home-deal-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+.home-deal-card-kicker {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.home-deal-card-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #0b1f2a;
+  background: #89ddd3;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+}
+.home-deal-card-codes {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.45rem;
+  align-items: end;
+}
+.home-deal-card-arrow { opacity: 0.7; padding-bottom: 1.1rem; }
+.home-deal-card-city {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.68rem;
+  opacity: 0.82;
+}
+.home-deal-card-price {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 700;
+}
+.home-deal-card-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+.home-deal-card-cta {
+  display: block;
+  padding: 0.65rem 1rem;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  color: #89ddd3;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+.home-deal-card-cta:hover { background: rgba(255,255,255,0.05); }
+
+.dot-iata {
+  display: flex;
+  gap: 0.28rem;
+}
+.dot-iata-letter { display: grid; gap: 2px; }
+.dot-iata-row { display: grid; grid-template-columns: repeat(5, 4px); gap: 2px; }
+.dot-iata-cell {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(246, 238, 227, 0.12);
+}
+.dot-iata-cell.is-on { background: #f6eee3; }
+
+.scroll-split-noise {
+  background-image: radial-gradient(rgba(255,255,255,0.2) 0.5px, transparent 0.5px);
+  background-size: 3px 3px;
+}
+.home-scroll-split--placeholder {
+  min-height: 40vh;
+}
+
+.search-form--hero {
+  position: relative;
+  z-index: 4;
+  box-shadow: 0 22px 50px rgba(7, 25, 35, 0.18);
+}
+
+@media (max-width: 959px) {
+  .home-hero-aside { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-drift,
+  .home-route-plane {
+    animation: none !important;
+  }
+  .home-route-art { opacity: 0.35; }
+}
+
+/* Enhancements: Bug Fares, Mileage Arbitrage & Matrix Grid */
+.offer-promotion--bugfare {
+  background: linear-gradient(135deg, #dc2626, #991b1b) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+  box-shadow: 0 0 12px rgba(220, 38, 38, 0.5);
+  animation: bugfare-pulse 2s infinite ease-in-out;
+}
+
+@keyframes bugfare-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.04); opacity: 0.92; }
+}
+
+.mileage-arbitrage-box {
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+  background: rgba(37, 169, 154, 0.08);
+  border: 1px solid rgba(37, 169, 154, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+}
+
+.cpm-badge {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  color: var(--ink);
+}
+
+.cpm-badge strong {
+  font-size: 1.05rem;
+  color: var(--sea);
+}
+
+.cpm-equiv {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.arbitrage-rec-badge {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 0.2rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.arbitrage-rec--emitiremmilhas {
+  background: #147a4e;
+  color: #ffffff;
+}
+
+.arbitrage-rec--emitiremdinheiro {
+  background: #102437;
+  color: #ffffff;
+}
+
+.arbitrage-rec--equivalente {
+  background: #748190;
+  color: #ffffff;
+}
+
+.offer-seats-left {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.matrix-grid-card {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--radius-md);
+}
+
+.matrix-grid-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.matrix-grid-header h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.15rem;
+}
+
+.matrix-grid-header p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+.matrix-legend {
+  display: flex;
+  gap: 0.6rem;
+  font-size: 0.75rem;
+}
+
+.legend-item {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.legend-cheapest { background: rgba(37, 169, 154, 0.2); color: #147a4e; font-weight: 700; }
+.legend-typical { background: rgba(82, 98, 116, 0.12); color: var(--ink); }
+.legend-highest { background: rgba(220, 38, 38, 0.15); color: #a92d36; }
+

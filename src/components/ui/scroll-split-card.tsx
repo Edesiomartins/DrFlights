@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 import {
   motion,
@@ -128,13 +129,18 @@ export function ScrollSplitCard({
               >
                 <div
                   className="absolute inset-0 h-full w-[300%]"
-                  style={{
-                    left: `${-100 * i}%`,
-                    backgroundImage: `url(${imageSrc})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                />
+                  style={{ left: `${-100 * i}%`, position: "absolute" }}
+                >
+                  <Image
+                    src={imageSrc}
+                    alt=""
+                    fill
+                    sizes="(max-width: 768px) 100vw, 900px"
+                    className="object-cover"
+                    priority={false}
+                    style={{ objectFit: "cover" }}
+                  />
+                </div>
               </motion.div>
 
               <motion.div
@@ -157,12 +163,8 @@ export function ScrollSplitCard({
                 }}
               >
                 <div
-                  className="pointer-events-none absolute inset-0 opacity-20 mix-blend-overlay"
-                  style={{
-                    backgroundImage:
-                      'url("https://framerusercontent.com/images/6mcf62RlDfRfU61Yg5vb2pefpi4.png?width=256&height=256")',
-                    backgroundRepeat: "repeat",
-                  }}
+                  className="pointer-events-none absolute inset-0 opacity-15 mix-blend-overlay scroll-split-noise"
+                  aria-hidden
                 />
                 {card.icon}
                 <h3 className="scroll-split-card-title relative m-0 text-xl font-bold leading-tight md:text-2xl">

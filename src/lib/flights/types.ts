@@ -61,7 +61,7 @@ export type NormalizedFlightOffer = {
   itineraryHash: string;
   /** Separate one-way tickets combined client-side / orchestrator */
   separateTickets?: boolean;
-  /** Seats.aero freshness warning */
+  /** Freshness warning for points inventory */
   stale?: boolean;
   lastSeenAt?: string;
   remainingSeats?: number;
@@ -74,6 +74,14 @@ export type NormalizedFlightOffer = {
     percentDiff: number;
     sampleCount: number;
     periodDays: number;
+  };
+  mileageArbitrage?: {
+    cpm: number;
+    programCostPerThousand: number;
+    cashEquivalent: number;
+    taxesAmount: number;
+    savingsPercent: number;
+    recommendation: "EMITIR EM MILHAS" | "EMITIR EM DINHEIRO" | "EQUIVALENTE";
   };
 };
 

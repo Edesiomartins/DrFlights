@@ -1,5 +1,7 @@
 import { AdSpace } from "@/components/ads/ad-space";
-import { HomeScrollSplit } from "@/components/home/home-scroll-split";
+import { HomeDealChips } from "@/components/home/home-deal-chips";
+import { HomeDealStatusCard } from "@/components/home/home-deal-status-card";
+import { HomeScrollSplitLazy } from "@/components/home/home-scroll-split-lazy";
 import { SearchForm } from "@/components/search/search-form";
 import { OnboardingTour } from "@/components/ui/onboarding-tour";
 import { getAppName } from "@/lib/utils/env";
@@ -26,13 +28,17 @@ export default function HomePage() {
             Encontre a melhor forma de voar comparando tarifas em dinheiro e milhas,
             com clareza para escolher e segurança para decidir.
           </p>
+          <HomeDealChips />
+        </div>
+        <div className="home-hero-aside">
+          <HomeDealStatusCard />
         </div>
         <div className="home-search-wrap shell">
           <SearchForm />
         </div>
       </section>
 
-      <HomeScrollSplit />
+      <HomeScrollSplitLazy />
 
       <section className="home-after shell" aria-labelledby="benefits-title">
         <div className="section-heading">

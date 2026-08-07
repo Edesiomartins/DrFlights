@@ -16,10 +16,6 @@ export function requireEnv(name: string): string {
   return value;
 }
 
-export function getDuffelApiKey(): string | undefined {
-  return read("DUFFEL_API_KEY") ?? read("DUFFEL_API_KEY_LIVE");
-}
-
 export function getTravelpayoutsToken(): string | undefined { return read("TRAVELPAYOUTS_TOKEN"); }
 export function getTravelpayoutsMarker(): string | undefined { return read("TRAVELPAYOUTS_MARKER"); }
 export function getTravelpayoutsRpm(): number {

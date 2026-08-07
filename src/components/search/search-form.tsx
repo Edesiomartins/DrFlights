@@ -1,8 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { AirportInput } from "@/components/search/airport-input";
+import {
+  futureDepartDate,
+  PREFILL_SEARCH_EVENT,
+  type PrefillSearchDetail,
+} from "@/lib/deals/format";
 
 type TripType = "one_way" | "round_trip" | "multi_city";
 
@@ -25,6 +30,53 @@ export function SearchForm() {
     Array<{ origin: string; destination: string; departureDate: string }>
   >([]);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    function onPrefill(event: Event) {
+      const detail = (event as CustomEvent<PrefillSearchDetail>).detail;
+      if (!detail?.origin || !detail?.destination) return;
+      const nextOrigin = detail.origin.toUpperCase();
+      const nextDestination = detail.destination.toUpperCase();
+      const nextDepart = depart || futureDepartDate(21);
+      setOrigin(nextOrigin);
+      setDestination(nextDestination);
+      setTripType("one_way");
+      setRet("");
+      if (!depart) setDepart(nextDepart);
+      setError(null);
+
+      const form = document.querySelector<HTMLElement>(
+        "[data-testid='search-form']",
+      );
+      form?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      if (detail.runSearch) {
+        const payload = {
+          tripType: "one_way" as const,
+          slices: [
+            {
+              origin: nextOrigin,
+              destination: nextDestination,
+              departureDate: nextDepart,
+            },
+          ],
+          adults,
+          children,
+          infants,
+          cabin,
+          maxStops: maxStops === "" ? undefined : Number(maxStops),
+          compareSeparateLegs: false,
+        };
+        startTransition(() => {
+          const params = new URLSearchParams({ q: JSON.stringify(payload) });
+          router.push(`/resultados?${params.toString()}`);
+        });
+      }
+    }
+
+    window.addEventListener(PREFILL_SEARCH_EVENT, onPrefill);
+    return () => window.removeEventListener(PREFILL_SEARCH_EVENT, onPrefill);
+  }, [adults, cabin, children, depart, infants, maxStops, router]);
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -75,9 +127,10 @@ export function SearchForm() {
 
   return (
     <form
-      className="glass animate-rise search-form"
+      className="glass search-form search-form--hero"
       onSubmit={onSubmit}
       data-testid="search-form"
+      tabIndex={-1}
     >
       <div className="trip-type-row" role="group" aria-label="Tipo de viagem">
         {(

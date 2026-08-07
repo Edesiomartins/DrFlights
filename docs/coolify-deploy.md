@@ -62,14 +62,12 @@ ADMIN_EMAILS=seuemail@dominio.com
 
 **Já ativos sem chave:** Kiwi.com e Skiplagged (fontes gratuitas).
 
-Para mais cobertura / milhas, configure:
+Para mais cobertura, configure:
 
 ```env
-DUFFEL_API_KEY=
-# ou:
-DUFFEL_API_KEY_LIVE=
 IGNAV_API_KEY=
-SEATS_AERO_API_KEY=
+TRAVELPAYOUTS_TOKEN=
+TRAVELPAYOUTS_MARKER=
 ```
 
 SMTP (alertas por e-mail):
@@ -82,7 +80,6 @@ SMTP_USER=
 SMTP_PASSWORD=
 SMTP_FROM=Busca Aerea <noreply@seudominio.com>
 ```
-
 ## 6. Domínio e HTTPS
 
 1. Em **Domains**, adicione `voos.seudominio.com` (ou o domínio escolhido)
@@ -136,7 +133,7 @@ Cliques passam por `/api/go` e gravam na tabela `AffiliateClick`.
 - [ ] `/api/health` retorna `status: ok` e `database: ok`
 - [ ] Domínio HTTPS funcionando
 - [ ] `APP_URL` igual ao domínio público
-- [ ] Pelo menos uma chave de voo (Duffel ou Ignav) se quiser resultados reais
+- [ ] Pelo menos Kiwi/Skiplagged (já sem chave) ou Ignav/Travelpayouts configurados se quiser resultados reais
 - [ ] Cron de alertas configurado (se for usar alertas)
 
 ## Observações

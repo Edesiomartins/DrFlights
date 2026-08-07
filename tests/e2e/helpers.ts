@@ -7,7 +7,7 @@ export const mockSearchResponse = {
   offers: [
     {
       id: "offer-cheap",
-      provider: "duffel",
+      provider: "ignav",
       providerOfferId: "o1",
       priceType: "cash",
       totalAmount: 450,
@@ -141,7 +141,7 @@ export const mockSearchResponse = {
   groups: [],
   providerStatuses: [
     {
-      provider: "duffel",
+      provider: "ignav",
       status: "success",
       offers: [],
       durationMs: 120,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   motion,
   useScroll,
@@ -13,17 +13,20 @@ import {
 import { cn } from "@/lib/utils/cn";
 
 interface ScrollBasedVelocityProps {
-  text: string;
+  /** @deprecated Prefer `items` for interactive marquees */
+  text?: string;
+  items?: ReactNode[];
   default_velocity?: number;
   className?: string;
   containerRef?: React.RefObject<HTMLElement | null>;
 }
 
 interface ParallaxProps {
-  children: string;
+  children: ReactNode;
   baseVelocity: number;
   className?: string;
   containerRef?: React.RefObject<HTMLElement | null>;
+  reducedMotion: boolean;
 }
 
 function wrap(min: number, max: number, v: number): number {
@@ -31,11 +34,12 @@ function wrap(min: number, max: number, v: number): number {
   return ((((v - min) % range) + range) % range) + min;
 }
 
-function ParallaxText({
+function ParallaxTrack({
   children,
   baseVelocity = 100,
   className,
   containerRef,
+  reducedMotion,
 }: ParallaxProps) {
   const baseX = useMotionValue(0);
   const { scrollY } = useScroll(
@@ -51,9 +55,10 @@ function ParallaxText({
   });
 
   const x = useTransform(baseX, (v) => `${wrap(-12.5, 0, v)}%`);
-
   const directionFactor = useRef<number>(1);
+
   useAnimationFrame((_t, delta) => {
+    if (reducedMotion) return;
     let moveBy = directionFactor.current * baseVelocity * (delta / 1000);
 
     if (velocityFactor.get() < 0) {
@@ -66,17 +71,29 @@ function ParallaxText({
     baseX.set(baseX.get() + moveBy);
   });
 
+  const copies = Array.from({ length: 8 }, (_, i) => (
+    <span key={i} className="site-marquee-segment">
+      {children}
+    </span>
+  ));
+
+  if (reducedMotion) {
+    return (
+      <div className="site-marquee-track site-marquee-track--static">
+        <div className={cn("flex flex-nowrap whitespace-nowrap", className)}>
+          {copies.slice(0, 2)}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="overflow-hidden whitespace-nowrap flex flex-nowrap"
-      style={{ width: "100%" }}
-    >
-      <motion.div className={cn("flex whitespace-nowrap", className)} style={{ x }}>
-        {Array.from({ length: 8 }).map((_, i) => (
-          <span key={i} className="block mr-10 last:mr-10">
-            {children}
-          </span>
-        ))}
+    <div className="site-marquee-track overflow-hidden whitespace-nowrap flex flex-nowrap">
+      <motion.div
+        className={cn("flex flex-nowrap whitespace-nowrap", className)}
+        style={{ x }}
+      >
+        {copies}
       </motion.div>
     </div>
   );
@@ -84,26 +101,48 @@ function ParallaxText({
 
 export function ScrollBasedVelocity({
   text,
+  items,
   default_velocity = 5,
   className,
   containerRef,
 }: ScrollBasedVelocityProps) {
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setReducedMotion(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  const content: ReactNode =
+    items && items.length > 0 ? (
+      <span className="site-marquee-items">{items}</span>
+    ) : (
+      text ?? ""
+    );
+
   return (
-    <section className="relative w-full">
-      <ParallaxText
+    <section className="relative w-full site-marquee-velocity">
+      <ParallaxTrack
         baseVelocity={default_velocity}
         className={className}
         containerRef={containerRef}
+        reducedMotion={reducedMotion}
       >
-        {text}
-      </ParallaxText>
-      <ParallaxText
-        baseVelocity={-default_velocity}
-        className={className}
-        containerRef={containerRef}
-      >
-        {text}
-      </ParallaxText>
+        {content}
+      </ParallaxTrack>
+      {!reducedMotion ? (
+        <ParallaxTrack
+          baseVelocity={-default_velocity}
+          className={className}
+          containerRef={containerRef}
+          reducedMotion={reducedMotion}
+        >
+          {content}
+        </ParallaxTrack>
+      ) : null}
     </section>
   );
 }

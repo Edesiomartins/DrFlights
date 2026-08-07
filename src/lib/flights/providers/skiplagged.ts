@@ -117,7 +117,7 @@ export class SkiplaggedProvider extends BaseFlightProvider {
         ok: response.ok,
         latencyMs: Date.now() - started,
         message: response.ok
-          ? "Skiplagged MCP responsivo (sem chave)."
+          ? "Skiplagged MCP responsivo."
           : `HTTP ${response.status}`,
       };
     } catch (error) {

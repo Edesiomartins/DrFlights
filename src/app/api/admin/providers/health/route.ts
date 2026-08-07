@@ -18,6 +18,11 @@ export async function POST() {
   const providers = getFlightProviders();
   const results = await Promise.all(providers.map((p) => p.healthCheck()));
 
+  const activeIds = providers.map((p) => p.id);
+  await prisma.providerStatus.deleteMany({
+    where: { provider: { notIn: activeIds } },
+  });
+
   for (const result of results) {
     if (!result.configured) {
       // Unconfigured: not a failure — keep circuit closed and disable the source.

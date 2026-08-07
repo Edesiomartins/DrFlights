@@ -108,7 +108,7 @@ describe("provider status display", () => {
       enabled: false,
       lastStatus: "error",
       circuitState: "closed",
-      lastError: "DUFFEL_API_KEY / DUFFEL_API_KEY_LIVE não configurada.",
+      lastError: "IGNAV_API_KEY não configurada.",
     });
     expect(view.category).toBe("unconfigured");
     expect(view.tone).toBe("neutral");
@@ -117,7 +117,7 @@ describe("provider status display", () => {
   it("formats health lines without calling unconfigured a failure", () => {
     expect(
       formatHealthResultLine({
-        provider: "duffel",
+        provider: "ignav",
         configured: false,
         ok: false,
         message: "chave ausente",
@@ -125,10 +125,10 @@ describe("provider status display", () => {
     ).toContain("não configurado");
     expect(
       formatHealthResultLine({
-        provider: "duffel",
+        provider: "ignav",
         configured: false,
         ok: false,
-        message: "DUFFEL_API_KEY / DUFFEL_API_KEY_LIVE não configurada.",
+        message: "IGNAV_API_KEY não configurada.",
       }),
     ).not.toContain("com falha");
   });

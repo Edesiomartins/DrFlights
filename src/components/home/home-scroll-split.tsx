@@ -2,9 +2,6 @@
 
 import { ScrollSplitCard } from "@/components/ui/scroll-split-card";
 
-const TRAVEL_IMAGE =
-  "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2400&auto=format&fit=crop";
-
 const CARDS = [
   {
     title: "Dinheiro e milhas",
@@ -34,7 +31,7 @@ export function HomeScrollSplit() {
     <section className="home-scroll-split" aria-label="Explore o DrFlights">
       <div className="home-scroll-split-bg" aria-hidden />
       <ScrollSplitCard
-        imageSrc={TRAVEL_IMAGE}
+        imageSrc="/hero-travel.png"
         cards={CARDS}
         startHint="Role para revelar"
         endHint="Agora é só buscar sua passagem"

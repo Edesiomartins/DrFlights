@@ -15,10 +15,10 @@ describe("circuit breaker", () => {
   });
 
   it("stays closed under threshold", () => {
-    recordProviderFailure("duffel");
-    recordProviderFailure("duffel");
-    expect(canCallProvider("duffel")).toBe(true);
-    expect(getCircuitSnapshot("duffel").state).toBe("closed");
+    recordProviderFailure("travelpayouts");
+    recordProviderFailure("travelpayouts");
+    expect(canCallProvider("travelpayouts")).toBe(true);
+    expect(getCircuitSnapshot("travelpayouts").state).toBe("closed");
   });
 
   it("opens after consecutive failures and blocks calls", () => {
@@ -49,12 +49,12 @@ describe("circuit breaker", () => {
 
   it("re-opens when half-open probe fails", () => {
     openCircuitForTests(
-      "seats-aero",
+      "travelpayouts",
       Date.now() - CIRCUIT_BREAKER_CONFIG.openCooldownMs - 10,
     );
-    expect(canCallProvider("seats-aero")).toBe(true);
-    recordProviderFailure("seats-aero");
-    expect(getCircuitSnapshot("seats-aero").state).toBe("open");
-    expect(canCallProvider("seats-aero")).toBe(false);
+    expect(canCallProvider("travelpayouts")).toBe(true);
+    recordProviderFailure("travelpayouts");
+    expect(getCircuitSnapshot("travelpayouts").state).toBe("open");
+    expect(canCallProvider("travelpayouts")).toBe(false);
   });
 });

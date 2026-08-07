@@ -13,9 +13,9 @@ Aplicação monolítica modular para metabusca de passagens, preparada para uma 
 ## Decisões
 
 1. App em `src/` na raiz do repositório.
-2. Providers: Duffel, Ignav, **Kiwi.com** (gratuito), **Skiplagged** (gratuito), Seats.aero (opcional). Orquestração com `Promise.allSettled`.
+2. Providers: Ignav, **Kiwi.com** (sem chave), **Skiplagged** (sem chave), Travelpayouts. Orquestração com `Promise.allSettled`.
 3. Cache na tabela `Search` (TTL padrão 600s). Sem Redis.
-4. Chaves Duffel: `DUFFEL_API_KEY` ou `DUFFEL_API_KEY_LIVE`.
+4. Chaves opcionais: `IGNAV_API_KEY`, `TRAVELPAYOUTS_TOKEN` / `TRAVELPAYOUTS_MARKER`.
 5. Kiwi e Skiplagged usam endpoints HTTP públicos (`mcp.kiwi.com`, `mcp.skiplagged.com`) **sem API key** — são fontes de dados no backend, não dependência de Claude/MCP tooling.
 6. Admin via `ADMIN_EMAILS` (CSV) no cadastro/login.
 7. Aeroportos indexados em memória a partir de `data/airport-coordinates.json` (OpenFlights / ODbL).
@@ -29,8 +29,8 @@ Aplicação monolítica modular para metabusca de passagens, preparada para uma 
 ## Dados mantidos em `data/`
 
 - `airport-coordinates.json` — autocomplete
-- `points-valuations.json` — cpp aproximado (Seats.aero)
-- `transfer-partners.json` — caminhos de transferência (Seats.aero)
+- `points-valuations.json` — cpp aproximado (referência)
+- `transfer-partners.json` — caminhos de transferência (referência)
 
 ## Fluxo de busca
 

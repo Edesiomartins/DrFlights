@@ -16,8 +16,8 @@ export default function AfiliadosPage() {
         <h2>Conteúdo patrocinado</h2>
         <p>
           Anúncios e destaques pagos são identificados com o selo <strong>Patrocinado</strong>.
-          Resultados orgânicos de busca de passagens continuam rotulados pela fonte (Duffel, Kiwi,
-          Skiplagged, etc.).
+          Resultados orgânicos de busca de passagens continuam rotulados pela fonte (Kiwi,
+          Skiplagged, Travelpayouts, etc.).
         </p>
 
         <h2>Transparência de ranking</h2>

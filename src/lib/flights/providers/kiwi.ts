@@ -104,7 +104,7 @@ export class KiwiProvider extends BaseFlightProvider {
         ok: response.ok,
         latencyMs: Date.now() - started,
         message: response.ok
-          ? "Kiwi MCP responsivo (sem chave)."
+          ? "Kiwi MCP responsivo."
           : `HTTP ${response.status}`,
       };
     } catch (error) {

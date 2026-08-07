@@ -20,4 +20,11 @@ describe("classifyPromotion", () => {
     const result = classifyPromotion(980, history);
     expect(result.label).toBe("Preço normal");
   });
+
+  it("detects FALHA DE TARIFA (BUG FARE) for extreme outliers", () => {
+    const history = [2500, 2600, 2400, 2550, 2450, 2700, 2500];
+    const result = classifyPromotion(800, history);
+    expect(result.label).toBe("FALHA DE TARIFA (BUG FARE)");
+    expect(result.zScore).toBeLessThan(-2.0);
+  });
 });

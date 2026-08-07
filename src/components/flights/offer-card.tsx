@@ -101,7 +101,28 @@ export function OfferCard({
             {offer.priceType === "points" ? formatPrice(offer.taxesAmount, offer.taxesCurrency, offer.pointsAmount, offer.pointsProgram) : formatPrice(offer.totalAmount, offer.currency)}
           </strong>
           {offer.pointsProgram ? <span className="offer-program">{offer.pointsProgram}</span> : null}
-          {offer.promotionLabel ? <span className="offer-promotion">{offer.promotionLabel}</span> : null}
+          {offer.promotionLabel ? (
+            <span className={`offer-promotion ${offer.promotionLabel.includes("BUG FARE") ? "offer-promotion--bugfare" : ""}`}>
+              {offer.promotionLabel}
+            </span>
+          ) : null}
+
+          {offer.mileageArbitrage ? (
+            <div className="mileage-arbitrage-box" data-testid="mileage-arbitrage">
+              <div className="cpm-badge">
+                <span>CPM:</span>
+                <strong>R$ {offer.mileageArbitrage.cpm.toFixed(2)}</strong>
+                <small>/ 1.000 pts</small>
+              </div>
+              <div className="cpm-equiv">
+                Equiv. monetário: <strong>R$ {offer.mileageArbitrage.cashEquivalent.toLocaleString("pt-BR")}</strong>
+              </div>
+              <span className={`arbitrage-rec-badge arbitrage-rec--${offer.mileageArbitrage.recommendation.replace(/\s+/g, "").toLowerCase()}`}>
+                {offer.mileageArbitrage.recommendation}
+                {offer.mileageArbitrage.savingsPercent > 0 ? ` (${offer.mileageArbitrage.savingsPercent}% de economia)` : ""}
+              </span>
+            </div>
+          ) : null}
           <div className="offer-card-actions">
             {expired ? <button className="btn btn-secondary" disabled>Oferta expirada</button> : bookingHref ? (
               <a className="btn offer-cta" href={bookingHref} target="_blank" rel="noopener noreferrer sponsored" data-testid="offer-booking-link">Ver oferta <span aria-hidden>→</span></a>
@@ -113,6 +134,7 @@ export function OfferCard({
         <span>Duração total: {formatDuration(offer.totalDurationMinutes)}</span>
         <span>{stopsLabel(offer.totalStops, stopAirports)}</span>
         <span>Cabine: {offer.cabin}</span>
+        {offer.remainingSeats ? <span className="offer-seats-left">⚠️ Restam apenas {offer.remainingSeats} assentos!</span> : null}
         {offer.baggage?.carryOn ? <span>Mão: {offer.baggage.carryOn}</span> : null}
         {offer.baggage?.checked ? <span>Despacho: {offer.baggage.checked}</span> : null}
         {offer.refundable != null ? (

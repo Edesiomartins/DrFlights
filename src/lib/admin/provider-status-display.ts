@@ -30,7 +30,7 @@ export type ProviderStatusRow = {
 /** True when the stored error/message means missing API key, not a runtime failure. */
 export function isMissingKeyMessage(message: string | null | undefined): boolean {
   if (!message) return false;
-  return /não configurad|nao configurad|api[_-]?key|chave ausente|sem chave|não configurada|nao configurada/i.test(
+  return /não configurad|nao configurad|chave ausente|[A-Z0-9_]+_API_KEY|CLIENT_ID|CLIENT_SECRET/i.test(
     message,
   );
 }
@@ -84,10 +84,7 @@ export function unconfiguredDetail(
   lastError: string | null | undefined,
 ): string {
   const base = lastError?.trim() || "Chave de API ausente no servidor.";
-  if (provider === "duffel") {
-    return `${base} Opcional no Brasil — a busca continua com Kiwi/Skiplagged.`;
-  }
-  if (provider === "ignav" || provider === "seats-aero") {
+  if (provider === "ignav") {
     return `${base} Fonte paga opcional.`;
   }
   return base;
