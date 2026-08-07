@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import { Fraunces, Manrope } from "next/font/google";
 import { AdSpace } from "@/components/ads/ad-space";
 import { CookieBanner } from "@/components/ads/cookie-banner";
@@ -46,6 +47,19 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${display.variable} ${body.variable} antialiased`}>
+        <Script
+          id="travelpayouts-emerald-script"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function () {
+      var script = document.createElement("script");
+      script.async = 1;
+      script.setAttribute("data-cmp-ab","2");
+      script.src = 'https://emrldtp.cc/NTU4NjU1.js?t=558655';
+      document.head.appendChild(script);
+  })();`,
+          }}
+        />
         <Providers>
           <PwaRegister />
           <SiteHeader />

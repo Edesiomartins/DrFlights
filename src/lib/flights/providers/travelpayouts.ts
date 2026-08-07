@@ -22,8 +22,16 @@ async function fetchPricesForDates(
     { signal, headers: { Accept: "application/json" } },
   );
   if (!response.ok) {
+    const text = await response.text();
+    if (response.status === 401) {
+      logger.warn("travelpayouts.auth_unauthorized", {
+        status: 401,
+        message: "TRAVELPAYOUTS_TOKEN inválido ou não autorizado (HTTP 401).",
+      });
+      return { data: [] };
+    }
     throw new Error(
-      `Travelpayouts HTTP ${response.status}: ${(await response.text()).slice(0, 160)}`,
+      `Travelpayouts HTTP ${response.status}: ${text.slice(0, 160)}`,
     );
   }
   return response.json();
@@ -156,15 +164,47 @@ export class TravelpayoutsProvider extends BaseFlightProvider {
   }
 
   async healthCheck(): Promise<ProviderHealthResult> {
-    return {
-      provider: this.id,
-      configured: this.configured,
-      enabled: this.enabled,
-      ok: this.configured,
-      message: this.configured
-        ? "Travelpayouts configurado."
-        : "TRAVELPAYOUTS_TOKEN ausente.",
-    };
+    const token = getTravelpayoutsToken();
+    if (!token) {
+      return {
+        provider: this.id,
+        configured: false,
+        enabled: false,
+        ok: false,
+        message: "TRAVELPAYOUTS_TOKEN não configurado no .env.",
+      };
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=GRU&destination=GIG&currency=brl&token=${token}&limit=1`,
+        { signal: AbortSignal.timeout(6000) },
+      );
+      if (response.status === 401) {
+        return {
+          provider: this.id,
+          configured: true,
+          enabled: true,
+          ok: false,
+          message: "TRAVELPAYOUTS_TOKEN inválido ou não autorizado (HTTP 401). Verifique a chave no painel do Travelpayouts.",
+        };
+      }
+      return {
+        provider: this.id,
+        configured: true,
+        enabled: true,
+        ok: response.ok,
+        message: response.ok ? "Travelpayouts responsivo." : `HTTP ${response.status}`,
+      };
+    } catch (err) {
+      return {
+        provider: this.id,
+        configured: true,
+        enabled: true,
+        ok: false,
+        message: err instanceof Error ? err.message : "Falha no healthcheck",
+      };
+    }
   }
 }
 
